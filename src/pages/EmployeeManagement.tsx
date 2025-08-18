@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,6 @@ import {
   Building,
   Award
 } from "lucide-react";
-import { useState, useEffect } from "react";
 import { apiClient } from "@/lib/api";
 
 const EmployeeManagement = () => {
@@ -32,16 +32,68 @@ const EmployeeManagement = () => {
   const [selectedRiskLevel, setSelectedRiskLevel] = useState("all");
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Add Employee form state
+  const [employeeForm, setEmployeeForm] = useState({
+    name: "",
+    email: "",
+    department: "",
+    position: ""
+  });
 
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        // This would fetch real employee data from API
-        // const employeeData = await apiClient.getEmployees();
-        // setEmployees(employeeData);
-        setEmployees([]); // Start with empty array - no mock data
+        // First, always load from localStorage to ensure we don't lose data
+        const savedEmployees = JSON.parse(localStorage.getItem('hopesecure_employees') || '[]');
+        let localEmployees = Array.isArray(savedEmployees) ? savedEmployees : [];
+        
+        // Try to fetch from API 
+        try {
+          const employeeData = await apiClient.getEmployees();
+          const apiEmployees = Array.isArray(employeeData) ? employeeData : ((employeeData as any)?.results || []);
+          
+          // If API returns data, merge with localStorage (prioritize localStorage for any conflicts)
+          if (apiEmployees.length > 0) {
+            // Convert API employees to frontend format
+            const convertedApiEmployees = apiEmployees.map(emp => ({
+              id: emp.id,
+              name: `${emp.first_name || ''} ${emp.last_name || ''}`.trim(),
+              email: emp.email,
+              department: emp.department_name || emp.department,
+              position: emp.position || '',
+              status: emp.is_active ? 'Active' : 'Inactive',
+              riskLevel: emp.risk_level || null,
+              riskScore: emp.phishing_susceptibility_score || null,
+              trainingPending: 0,
+              trainingCompleted: 0,
+              vulnerabilityCount: 0,
+              lastActivity: emp.last_campaign_date,
+              joinDate: emp.hire_date,
+              campaignsParticipated: emp.total_campaigns_received || 0,
+              hasSimulationResults: emp.total_campaigns_received > 0
+            }));
+            
+            // Merge: keep localStorage employees and add any new API employees
+            const mergedEmployees = [...localEmployees];
+            convertedApiEmployees.forEach(apiEmp => {
+              if (!mergedEmployees.find(localEmp => localEmp.email === apiEmp.email)) {
+                mergedEmployees.push(apiEmp);
+              }
+            });
+            setEmployees(mergedEmployees);
+          } else {
+            // API returned empty, use localStorage
+            setEmployees(localEmployees);
+          }
+        } catch (apiError) {
+          console.warn('API fetch failed, using localStorage only:', apiError);
+          setEmployees(localEmployees);
+        }
       } catch (error) {
-        console.error('Failed to fetch employees:', error);
+        console.error('Error loading employees:', error);
         setEmployees([]);
       } finally {
         setLoading(false);
@@ -51,13 +103,149 @@ const EmployeeManagement = () => {
     fetchEmployees();
   }, []);
 
+  // Handle form input changes
+  const handleFormChange = (field: string, value: string) => {
+    setEmployeeForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Handle add employee
+  const handleAddEmployee = async () => {
+    if (!employeeForm.name || !employeeForm.email || !employeeForm.department || !employeeForm.position) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Split name into first and last name - ensure both are non-empty strings
+      const nameParts = employeeForm.name.trim().split(' ');
+      const firstName = nameParts[0] || 'Unknown';
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Employee';
+      
+      // Generate employee ID
+      const employeeId = `EMP${Date.now()}`;
+
+      // First, try to get departments from API to map name to ID
+      let departmentId = null;
+      try {
+        const departments = await apiClient.getDepartments();
+        console.log('Fetched departments:', departments);
+        if (Array.isArray(departments)) {
+          const department = departments.find(dept => dept.name === employeeForm.department);
+          departmentId = department ? department.id : null;
+        }
+      } catch (deptError) {
+        console.warn('Could not fetch departments:', deptError);
+      }
+      
+      // Fallback to static mapping if API fails or no department found
+      if (!departmentId) {
+        const departmentMapping = {
+          'Marketing': 4, 
+          'HR': 7,  
+          'Finance': 3, 
+          'IT': 8, 
+          'Sales': 9
+        };
+        departmentId = departmentMapping[employeeForm.department] || 1;
+        console.log(`Using fallback department mapping: ${employeeForm.department} -> ${departmentId}`);
+      }
+
+      const backendEmployeeData = {
+        employee_id: employeeId,
+        first_name: firstName,
+        last_name: lastName,
+        email: employeeForm.email,
+        department: departmentId, // Use the determined department ID
+        position: employeeForm.position,
+        hire_date: new Date().toISOString().split('T')[0],
+        phone_number: '',
+        manager_email: '',
+        office_location: '',
+        security_clearance_level: '',
+        has_admin_access: false,
+        risk_level: 'medium'
+      };
+
+      try {
+        // Try API first with correct backend format
+        const savedEmployee = await apiClient.createEmployee(backendEmployeeData);
+        // Convert backend response to frontend format
+        const frontendEmployee = {
+          id: savedEmployee.id,
+          name: `${savedEmployee.first_name} ${savedEmployee.last_name}`.trim(),
+          email: savedEmployee.email,
+          department: savedEmployee.department_name || savedEmployee.department,
+          position: savedEmployee.position,
+          status: savedEmployee.is_active ? 'Active' : 'Inactive',
+          riskLevel: null,
+          riskScore: null,
+          trainingPending: 0,
+          trainingCompleted: 0,
+          vulnerabilityCount: 0,
+          lastActivity: savedEmployee.last_campaign_date,
+          joinDate: savedEmployee.hire_date,
+          campaignsParticipated: savedEmployee.total_campaigns_received || 0,
+          hasSimulationResults: false
+        };
+        
+        // Update state
+        const updatedEmployees = Array.isArray(employees) ? [...employees, frontendEmployee] : [frontendEmployee];
+        setEmployees(updatedEmployees);
+        
+        // ALWAYS save to localStorage for persistence
+        localStorage.setItem('hopesecure_employees', JSON.stringify(updatedEmployees));
+      } catch (apiError) {
+        console.warn('API save failed, saving locally:', apiError);
+        // Fallback to localStorage - create frontend format data
+        const frontendEmployeeData = {
+          id: Date.now(),
+          name: employeeForm.name,
+          email: employeeForm.email,
+          department: employeeForm.department,
+          position: employeeForm.position,
+          status: 'Active',
+          riskLevel: null,
+          riskScore: null,
+          trainingPending: 0,
+          trainingCompleted: 0,
+          vulnerabilityCount: 0,
+          lastActivity: null,
+          joinDate: new Date().toISOString().split('T')[0],
+          campaignsParticipated: 0,
+          hasSimulationResults: false
+        };
+        const currentEmployees = Array.isArray(employees) ? employees : [];
+        const updatedEmployees = [...currentEmployees, frontendEmployeeData];
+        setEmployees(updatedEmployees);
+        localStorage.setItem('hopesecure_employees', JSON.stringify(updatedEmployees));
+      }
+
+      // Reset form and close dialog
+      setEmployeeForm({ name: "", email: "", department: "", position: "" });
+      setIsDialogOpen(false);
+      alert('Employee added successfully!');
+    } catch (error) {
+      console.error('Error adding employee:', error);
+      alert('Failed to add employee. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const departments = ["all", "Marketing", "HR", "Finance", "IT", "Sales"];
   const riskLevels = ["all", "High", "Medium", "Low"];
 
-  const filteredEmployees = employees.filter(employee => {
+  // Ensure employees is always an array before filtering
+  const employeesArray = Array.isArray(employees) ? employees : [];
+  
+  const filteredEmployees = employeesArray.filter(employee => {
     const matchesSearch = employee.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         employee.department.toLowerCase().includes(searchTerm.toLowerCase());
+                         employee.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         employee.department?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDepartment = selectedDepartment === "all" || employee.department === selectedDepartment;
     const matchesRisk = selectedRiskLevel === "all" || employee.riskLevel === selectedRiskLevel;
     return matchesSearch && matchesDepartment && matchesRisk;
@@ -83,16 +271,19 @@ const EmployeeManagement = () => {
 
   // Calculate department statistics
   const departmentStats = departments.slice(1).map(dept => {
-    const deptEmployees = employees.filter(emp => emp.department === dept);
+    const deptEmployees = employeesArray.filter(emp => emp.department === dept);
     const highRisk = deptEmployees.filter(emp => emp.riskLevel === 'High').length;
-    const avgRisk = deptEmployees.reduce((sum, emp) => sum + emp.riskScore, 0) / deptEmployees.length || 0;
+    const employeesWithRiskScores = deptEmployees.filter(emp => emp.riskScore !== null && emp.riskScore !== undefined);
+    const avgRisk = employeesWithRiskScores.length > 0 
+      ? employeesWithRiskScores.reduce((sum, emp) => sum + (emp.riskScore || 0), 0) / employeesWithRiskScores.length 
+      : 0;
     
     return {
       department: dept,
       totalEmployees: deptEmployees.length,
       highRiskCount: highRisk,
       averageRiskScore: Math.round(avgRisk),
-      trainingPending: deptEmployees.reduce((sum, emp) => sum + emp.trainingPending, 0)
+      trainingPending: deptEmployees.reduce((sum, emp) => sum + (emp.trainingPending || 0), 0)
     };
   });
 
@@ -114,7 +305,7 @@ const EmployeeManagement = () => {
               <Download className="h-4 w-4 mr-2" />
               Export Report
             </Button>
-            <Dialog>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <UserPlus className="h-4 w-4 mr-2" />
@@ -132,37 +323,55 @@ const EmployeeManagement = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium">Full Name</label>
-                      <Input placeholder="Enter full name" />
+                      <Input 
+                        placeholder="Enter full name" 
+                        value={employeeForm.name}
+                        onChange={(e) => handleFormChange('name', e.target.value)}
+                      />
                     </div>
                     <div>
                       <label className="text-sm font-medium">Email Address</label>
-                      <Input placeholder="employee@domain.com" />
+                      <Input 
+                        placeholder="employee@domain.com" 
+                        type="email"
+                        value={employeeForm.email}
+                        onChange={(e) => handleFormChange('email', e.target.value)}
+                      />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium">Department</label>
-                      <Select>
+                      <Select value={employeeForm.department} onValueChange={(value) => handleFormChange('department', value)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select department" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="marketing">Marketing</SelectItem>
-                          <SelectItem value="hr">HR</SelectItem>
-                          <SelectItem value="finance">Finance</SelectItem>
-                          <SelectItem value="it">IT</SelectItem>
-                          <SelectItem value="sales">Sales</SelectItem>
+                          <SelectItem key="Marketing" value="Marketing">Marketing</SelectItem>
+                          <SelectItem key="HR" value="HR">HR</SelectItem>
+                          <SelectItem key="Finance" value="Finance">Finance</SelectItem>
+                          <SelectItem key="IT" value="IT">IT</SelectItem>
+                          <SelectItem key="Sales" value="Sales">Sales</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div>
                       <label className="text-sm font-medium">Position</label>
-                      <Input placeholder="Job title" />
+                      <Input 
+                        placeholder="Job title" 
+                        value={employeeForm.position}
+                        onChange={(e) => handleFormChange('position', e.target.value)}
+                      />
                     </div>
                   </div>
                   <div className="flex justify-end space-x-2">
-                    <Button variant="outline">Cancel</Button>
-                    <Button>Add Employee</Button>
+                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                    <Button 
+                      onClick={handleAddEmployee}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? 'Adding...' : 'Add Employee'}
+                    </Button>
                   </div>
                 </div>
               </DialogContent>
@@ -261,36 +470,42 @@ const EmployeeManagement = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
-                              <span className="font-semibold">{employee.riskScore}</span>
-                              <Badge variant="outline" className={getRiskColor(employee.riskLevel)}>
-                                {employee.riskLevel}
-                              </Badge>
+                              {employee.hasSimulationResults && employee.riskScore !== null ? (
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-semibold">{employee.riskScore}</span>
+                                  <Badge variant="outline" className={getRiskColor(employee.riskLevel)}>
+                                    {employee.riskLevel}
+                                  </Badge>
+                                </div>
+                              ) : (
+                                <span className="text-gray-400 italic">No simulation data</span>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="text-center">
-                              <p className="font-medium">{employee.campaignsParticipated}</p>
+                              <p className="font-medium">{employee.campaignsParticipated || 0}</p>
                               <p className="text-xs text-gray-500">participated</p>
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-1">
-                              {employee.vulnerabilityCount > 0 ? (
+                              {(employee.vulnerabilityCount || 0) > 0 ? (
                                 <AlertTriangle className="h-4 w-4 text-red-500" />
                               ) : (
                                 <CheckCircle className="h-4 w-4 text-green-500" />
                               )}
-                              <span className={employee.vulnerabilityCount > 0 ? "text-red-600 font-medium" : "text-green-600"}>
-                                {employee.vulnerabilityCount}
+                              <span className={(employee.vulnerabilityCount || 0) > 0 ? "text-red-600 font-medium" : "text-green-600"}>
+                                {employee.vulnerabilityCount || 0}
                               </span>
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="text-center">
                               <p className="text-sm">
-                                <span className="text-green-600 font-medium">{employee.trainingCompleted}</span>
+                                <span className="text-green-600 font-medium">{employee.trainingCompleted || 0}</span>
                                 <span className="text-gray-400 mx-1">/</span>
-                                <span className="text-orange-600">{employee.trainingPending}</span>
+                                <span className="text-orange-600">{employee.trainingPending || 0}</span>
                               </p>
                               <p className="text-xs text-gray-500">completed/pending</p>
                             </div>
@@ -302,13 +517,13 @@ const EmployeeManagement = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-1">
-                              <Button variant="ghost" size="sm">
+                              <Button key="trend" variant="ghost" size="sm">
                                 <TrendingUp className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="sm">
+                              <Button key="book" variant="ghost" size="sm">
                                 <BookOpen className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="sm">
+                              <Button key="mail" variant="ghost" size="sm">
                                 <Mail className="h-4 w-4" />
                               </Button>
                             </div>

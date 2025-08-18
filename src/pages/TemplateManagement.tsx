@@ -55,10 +55,13 @@ import {
   AlignCenter,
   AlignRight
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { templateData, getActiveTemplates, addTemplate, updateTemplate, deleteTemplate, Template } from "@/data/templates";
+import { apiClient, Template as APITemplate } from "@/lib/api";
 
 const TemplateManagement = () => {
+  const [templates, setTemplates] = useState<any[]>(templateData);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -162,49 +165,78 @@ const TemplateManagement = () => {
     setIsCreating(true);
     
     try {
-      // Create new template object
-      const newTemplate: Omit<Template, 'id'> = {
+      // Create new template object for API
+      const newTemplateData = {
         name: templateSettings.name,
-        category: templateSettings.category,
+        category: templateSettings.category.toLowerCase().replace(/\s+/g, '_'),
         description: templateSettings.description || 'Custom template created in Template Management',
-        usageCount: 0,
-        successRate: '0%',
-        lastUsed: 'Never',
-        status: 'Draft',
-        riskLevel: templateSettings.difficulty?.toLowerCase() || 'beginner',
-        preview: templateSettings.preview || templateSettings.name,
-        emailSubject: templateSettings.emailSubject || `Template: ${templateSettings.name}`,
+        email_subject: templateSettings.emailSubject || `Template: ${templateSettings.name}`,
+        sender_name: templateSettings.senderName || 'System',
+        sender_email: templateSettings.senderEmail || 'noreply@domain.com',
+        html_content: templateSettings.htmlContent || '',
+        css_styles: templateSettings.cssStyles || '',
+        landing_page_url: templateSettings.landingPageUrl || '',
         domain: mimicSettings.mimicDomain || 'custom-template.com',
-        difficulty: templateSettings.difficulty || 'Beginner',
-        rating: 0,
-        tags: templateSettings.tags || [],
-        hasAttachments: templateSettings.hasAttachments || false,
-        hasCSS: templateSettings.hasCSS || false,
-        isResponsive: templateSettings.isResponsive || true,
-        thumbnail: '/placeholder.svg',
-        htmlContent: templateSettings.htmlContent || '',
-        cssStyles: templateSettings.cssStyles || '',
-        senderName: templateSettings.senderName || '',
-        senderEmail: templateSettings.senderEmail || '',
-        landingPageUrl: templateSettings.landingPageUrl || '',
-        priority: templateSettings.priority || 'normal',
-        trackingEnabled: templateSettings.trackingEnabled || true
+        difficulty: templateSettings.difficulty?.toLowerCase() || 'intermediate',
+        risk_level: templateSettings.difficulty?.toLowerCase() || 'intermediate',
+        status: 'draft',
+        has_attachments: templateSettings.hasAttachments || false,
+        has_css: !!templateSettings.cssStyles,
+        is_responsive: templateSettings.isResponsive !== false,
+        tracking_enabled: templateSettings.trackingEnabled !== false,
+        priority: templateSettings.priority || 'medium'
       };
       
-      // Add template to shared data
-      addTemplate(newTemplate);
+      // Try to create via API first
+      try {
+        const createdTemplate = await apiClient.createTemplate(newTemplateData);
+        // Add to local state
+        setTemplates(prev => [...prev, createdTemplate]);
+        alert('Template created successfully!');
+      } catch (apiError) {
+        console.warn('API creation failed, using local storage:', apiError);
+        // Fallback: Create local template object
+        const localTemplate = {
+          id: Date.now(),
+          name: templateSettings.name,
+          category: templateSettings.category,
+          description: templateSettings.description || 'Custom template',
+          usageCount: 0,
+          successRate: '0%',
+          lastUsed: 'Never',
+          status: 'Draft',
+          riskLevel: templateSettings.difficulty?.toLowerCase() || 'beginner',
+          preview: templateSettings.preview || templateSettings.name,
+          emailSubject: templateSettings.emailSubject || `Template: ${templateSettings.name}`,
+          domain: mimicSettings.mimicDomain || 'custom-template.com',
+          difficulty: templateSettings.difficulty || 'Beginner',
+          rating: 0,
+          tags: templateSettings.tags || [],
+          hasAttachments: templateSettings.hasAttachments || false,
+          hasCSS: templateSettings.hasCSS || false,
+          isResponsive: templateSettings.isResponsive || true,
+          thumbnail: '/placeholder.svg',
+          htmlContent: templateSettings.htmlContent || '',
+          cssStyles: templateSettings.cssStyles || '',
+          senderName: templateSettings.senderName || '',
+          senderEmail: templateSettings.senderEmail || '',
+          landingPageUrl: templateSettings.landingPageUrl || '',
+          priority: templateSettings.priority || 'normal',
+          trackingEnabled: templateSettings.trackingEnabled || true
+        };
+        
+        // Add template to local data and state
+        addTemplate(localTemplate);
+        setTemplates(prev => [...prev, localTemplate]);
+        alert('Template created successfully (stored locally)!');
+      }
       
-      setTimeout(() => {
-        alert('Template created successfully and added to library!');
-        setIsCreating(false);
-        setShowCreateDialog(false);
-        resetTemplateForm();
-        // Force re-render to show the new template
-        window.location.reload();
-      }, 1000);
+      setShowCreateDialog(false);
+      resetTemplateForm();
     } catch (error) {
       console.error('Error creating template:', error);
       alert('Error creating template. Please try again.');
+    } finally {
       setIsCreating(false);
     }
   };
@@ -290,13 +322,22 @@ const TemplateManagement = () => {
     alert(`Template "${template.name}" duplicated successfully!`);
   };
 
-  const handleDeleteTemplate = (templateId: string) => {
+  const handleDeleteTemplate = async (templateId: string) => {
     if (confirm('Are you sure you want to delete this template?')) {
       try {
-        deleteTemplate(parseInt(templateId));
-        alert('Template deleted successfully!');
-        // Force re-render to show updated list
-        window.location.reload();
+        // Try API delete first
+        try {
+          await apiClient.deleteTemplate(parseInt(templateId));
+          // Remove from local state
+          setTemplates(prev => prev.filter(t => t.id !== parseInt(templateId)));
+          alert('Template deleted successfully!');
+        } catch (apiError) {
+          console.warn('API delete failed, using local storage:', apiError);
+          // Fallback: delete from local data
+          deleteTemplate(parseInt(templateId));
+          setTemplates(prev => prev.filter(t => t.id !== parseInt(templateId)));
+          alert('Template deleted successfully (from local storage)!');
+        }
       } catch (error) {
         console.error('Error deleting template:', error);
         alert('Error deleting template. Please try again.');
@@ -606,7 +647,25 @@ const TemplateManagement = () => {
     }));
   };
 
-  const templates = templateData;
+  // Load templates from API
+  useEffect(() => {
+    const loadTemplates = async () => {
+      try {
+        setLoading(true);
+        const apiTemplates = await apiClient.getTemplates();
+        // Convert API templates to local format if needed
+        setTemplates(apiTemplates.length > 0 ? apiTemplates : templateData);
+      } catch (error) {
+        console.error('Failed to load templates:', error);
+        // Fallback to static data
+        setTemplates(templateData);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTemplates();
+  }, []);
 
   const categories = ["all", "Credential Phishing", "Link Click Tracking", "Attachment Download", "Data Input Form", "Social Engineering"];
 

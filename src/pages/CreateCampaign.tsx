@@ -9,11 +9,21 @@ import { ArrowLeft, Upload, Users, Mail, Calendar, Target, Eye, Star, BarChart3 
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { getActiveTemplates, Template } from "@/data/templates";
+import { apiClient } from "@/lib/api";
 
 const CreateCampaign = () => {
   const navigate = useNavigate();
   const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null);
   const [campaignType, setCampaignType] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    scheduleDate: "",
+    targetEmails: "",
+  });
 
   // Get templates from shared data
   const templates = getActiveTemplates();
@@ -24,6 +34,60 @@ const CreateCampaign = () => {
     { value: "link-click", label: "Link Click Tracking", description: "Track who clicks suspicious links" },
     { value: "attachment", label: "Fake Attachment", description: "Test if users download suspicious files" }
   ];
+
+  // Handle form field changes
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Handle form submission
+  const handleSubmit = async (isDraft: boolean = false) => {
+    if (!formData.name || !campaignType || !selectedTemplate) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const campaignData = {
+        name: formData.name,
+        description: formData.description,
+        campaign_type: campaignType,
+        template_id: selectedTemplate,
+        scheduled_date: formData.scheduleDate || null,
+        target_emails: formData.targetEmails.split(/[,\n]/).map(email => email.trim()).filter(email => email),
+        status: isDraft ? 'draft' : 'scheduled',
+        created_at: new Date().toISOString()
+      };
+
+      // Try to save via API
+      try {
+        const campaign = await apiClient.createCampaign(campaignData);
+        alert(`Campaign ${isDraft ? 'saved as draft' : 'created'} successfully!`);
+        navigate('/dashboard');
+      } catch (apiError) {
+        console.warn('API save failed, saving locally:', apiError);
+        // Fallback: save to localStorage
+        const existingCampaigns = JSON.parse(localStorage.getItem('hopesecure_campaigns') || '[]');
+        const newCampaign = {
+          id: Date.now(),
+          ...campaignData
+        };
+        existingCampaigns.push(newCampaign);
+        localStorage.setItem('hopesecure_campaigns', JSON.stringify(existingCampaigns));
+        alert(`Campaign ${isDraft ? 'saved as draft' : 'created'} successfully (locally)!`);
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      alert('Error creating campaign. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,7 +113,7 @@ const CreateCampaign = () => {
       </div>
 
       <div className="max-w-4xl mx-auto px-6 lg:px-8 py-8">
-        <form className="space-y-8">
+        <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
           {/* Campaign Basic Info */}
           <Card>
             <CardHeader>
@@ -66,6 +130,8 @@ const CreateCampaign = () => {
                   id="campaign-name" 
                   placeholder="e.g., Q1 Security Assessment" 
                   className="mt-1"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
                 />
               </div>
               
@@ -76,6 +142,8 @@ const CreateCampaign = () => {
                   placeholder="Brief description of this campaign's objectives..."
                   className="mt-1"
                   rows={3}
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
                 />
               </div>
 
@@ -105,6 +173,8 @@ const CreateCampaign = () => {
                     id="schedule-date" 
                     type="datetime-local" 
                     className="mt-1"
+                    value={formData.scheduleDate}
+                    onChange={(e) => handleInputChange('scheduleDate', e.target.value)}
                   />
                 </div>
               </div>
@@ -232,6 +302,8 @@ const CreateCampaign = () => {
                   placeholder="Enter email addresses separated by commas or new lines..."
                   className="mt-1"
                   rows={4}
+                  value={formData.targetEmails}
+                  onChange={(e) => handleInputChange('targetEmails', e.target.value)}
                 />
               </div>
             </CardContent>
@@ -240,19 +312,23 @@ const CreateCampaign = () => {
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-end">
             <Button 
+              type="button"
               variant="outline" 
-              onClick={() => navigate('/dashboard')}
+              onClick={() => handleSubmit(true)}
               className="order-2 sm:order-1"
+              disabled={isSubmitting}
             >
-              Save as Draft
+              {isSubmitting ? 'Saving...' : 'Save as Draft'}
             </Button>
             <Button 
+              type="button"
               variant="security" 
               size="lg"
               className="order-1 sm:order-2"
-              onClick={() => navigate('/campaign/execute')}
+              onClick={() => handleSubmit(false)}
+              disabled={isSubmitting}
             >
-              Launch Campaign
+              {isSubmitting ? 'Creating...' : 'Launch Campaign'}
             </Button>
           </div>
         </form>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear HopeSecure Data</title>
+</head>
+<body>
+    <h1>Clearing HopeSecure localStorage Data...</h1>
+    <script>
+        // Clear all HopeSecure related localStorage data
+        localStorage.removeItem('hopesecure_employees');
+        localStorage.removeItem('hopesecure_departments');
+        localStorage.removeItem('hopesecure_campaigns');
+        localStorage.removeItem('hopesecure_auth_token');
+        localStorage.removeItem('hopesecure_user');
+        
+        // Clear all items that might be related
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key && key.includes('hopesecure')) {
+                localStorage.removeItem(key);
+            }
+        }
+        
+        console.log('All HopeSecure localStorage data cleared');
+        document.body.innerHTML += '<p style="color: green;">✅ All localStorage data cleared successfully!</p>';
+        document.body.innerHTML += '<p><a href="http://localhost:8081" target="_blank">Open HopeSecure App</a></p>';
+    </script>
+</body>
+</html>

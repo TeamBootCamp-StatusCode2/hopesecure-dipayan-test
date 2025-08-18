@@ -31,6 +31,35 @@ export interface Company {
   updated_at: string;
 }
 
+export interface Template {
+  id: number;
+  name: string;
+  category: string;
+  description: string;
+  email_subject: string;
+  sender_name: string;
+  sender_email: string;
+  html_content: string;
+  css_styles?: string;
+  landing_page_url?: string;
+  domain: string;
+  difficulty: string;
+  risk_level: string;
+  status: string;
+  has_attachments: boolean;
+  has_css: boolean;
+  is_responsive: boolean;
+  usage_count: number;
+  success_rate: string;
+  rating: number;
+  tracking_enabled: boolean;
+  priority: string;
+  created_by: number;
+  created_at: string;
+  updated_at: string;
+  last_used?: string;
+}
+
 const API_BASE_URL = "http://127.0.0.1:8000/api";
 
 class APIClient {
@@ -134,6 +163,173 @@ class APIClient {
       throw new Error(data.error || 'Failed to upload logo');
     }
     return data;
+  }
+
+  // Template API methods
+  async getTemplates(): Promise<Template[]> {
+    const response = await fetch(`${API_BASE_URL}/templates/`, {
+      method: "GET",
+      headers: { 
+        "Authorization": `Token ${this.token}`
+      },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('Get templates error:', data);
+      throw new Error(data.error || 'Failed to fetch templates');
+    }
+    return data;
+  }
+
+  async createTemplate(templateData: Partial<Template>): Promise<Template> {
+    const response = await fetch(`${API_BASE_URL}/templates/`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Token ${this.token}`
+      },
+      body: JSON.stringify(templateData),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('Create template error:', data);
+      throw new Error(data.error || 'Failed to create template');
+    }
+    return data;
+  }
+
+  async updateTemplate(id: number, templateData: Partial<Template>): Promise<Template> {
+    const response = await fetch(`${API_BASE_URL}/templates/${id}/`, {
+      method: "PUT",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Token ${this.token}`
+      },
+      body: JSON.stringify(templateData),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('Update template error:', data);
+      throw new Error(data.error || 'Failed to update template');
+    }
+    return data;
+  }
+
+  async deleteTemplate(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/templates/${id}/`, {
+      method: "DELETE",
+      headers: { 
+        "Authorization": `Token ${this.token}`
+      },
+    });
+    if (!response.ok) {
+      const data = await response.json();
+      console.error('Delete template error:', data);
+      throw new Error(data.error || 'Failed to delete template');
+    }
+  }
+
+  async cloneTemplate(id: number): Promise<Template> {
+    const response = await fetch(`${API_BASE_URL}/templates/${id}/clone/`, {
+      method: "POST",
+      headers: { 
+        "Authorization": `Token ${this.token}`
+      },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('Clone template error:', data);
+      throw new Error(data.error || 'Failed to clone template');
+    }
+    return data;
+  }
+
+  // Campaign API methods
+  async getCampaigns(): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/campaigns/`, {
+      method: "GET",
+      headers: { 
+        "Authorization": `Token ${this.token}`
+      },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('Get campaigns error:', data);
+      throw new Error(data.error || 'Failed to fetch campaigns');
+    }
+    return data;
+  }
+
+  async createCampaign(campaignData: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/campaigns/`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Token ${this.token}`
+      },
+      body: JSON.stringify(campaignData),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('Create campaign error:', data);
+      throw new Error(data.error || 'Failed to create campaign');
+    }
+    return data;
+  }
+
+  // Employee API methods
+  async getEmployees(): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/employees/`, {
+      method: "GET",
+      headers: { 
+        "Authorization": `Token ${this.token}`
+      },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('Get employees error:', data);
+      throw new Error(data.error || 'Failed to fetch employees');
+    }
+    return data.results || data; // Return the results array, or data if it's already an array
+  }
+
+  async createEmployee(employeeData: any): Promise<any> {
+    console.log('Creating employee with data:', employeeData);
+    const response = await fetch(`${API_BASE_URL}/employees/`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Token ${this.token}`
+      },
+      body: JSON.stringify(employeeData),
+    });
+    
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('Create employee error:', data);
+      console.error('Response status:', response.status, response.statusText);
+      throw new Error(JSON.stringify(data) || 'Failed to create employee');
+    }
+    return data;
+  }
+
+  async getDepartments(): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/employees/departments/`, {
+      method: "GET",
+      headers: { 
+        "Authorization": `Token ${this.token}`
+      },
+    });
+    
+    if (!response.ok) {
+      console.error(`Departments API error: ${response.status} ${response.statusText}`);
+      const text = await response.text();
+      console.error('Response text:', text);
+      throw new Error(`Failed to fetch departments: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data.results || data; // Return the results array, or data if it's already an array
   }
 
   getToken() {
