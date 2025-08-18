@@ -1,4 +1,4 @@
-# 📁 CyberGuard Project - Complete File Structure Guide
+# 📁 HopeSecure Project - Complete File Structure Guide
 
 > **Target:** Cybersecurity Simulation Platform  
 > **Stack:** React + TypeScript (Frontend) + Django REST API (Backend)  
