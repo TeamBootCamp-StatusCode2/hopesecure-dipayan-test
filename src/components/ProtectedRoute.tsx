@@ -4,14 +4,13 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  roles?: string[]; // Optional: restrict access to specific roles
+  // Removed roles restriction - now any authenticated user can access
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children, 
-  roles 
+  children
 }) => {
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -28,11 +27,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/signin" state={{ from: location }} replace />;
   }
 
-  // Check role-based access if roles are specified
-  if (roles && user && !roles.includes(user.role)) {
-    // Redirect to unauthorized page or dashboard
-    return <Navigate to="/dashboard" replace />;
-  }
-
+  // Allow access to any authenticated user - no role checking
   return <>{children}</>;
 };

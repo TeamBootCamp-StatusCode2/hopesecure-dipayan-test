@@ -13,23 +13,18 @@ import {
   Upload,
   Save
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { apiClient, Company } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SettingsPage = () => {
-  const [organizationSettings, setOrganizationSettings] = useState({
-    companyName: "TechCorp Inc.",
-    domain: "techcorp.com",
-    industry: "technology",
-    employeeCount: "200-500",
-    timezone: "UTC-5",
-    language: "en",
-    logo: null,
-    address: "123 Business District, City",
-    phone: "+1 (555) 123-4567",
-    website: "https://techcorp.com",
-    registrationNumber: "REG-2024-001",
-    founded: "2020"
-  });
+  const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [organizationSettings, setOrganizationSettings] = useState<Company | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   const [notificationSettings, setNotificationSettings] = useState({
     emailAlerts: true,
@@ -41,10 +36,138 @@ const SettingsPage = () => {
     alertThreshold: 25
   });
 
-  const handleSaveSettings = (section: string) => {
-    // In real implementation, this would save to backend
-    console.log(`Saving ${section} settings...`);
+  useEffect(() => {
+    const fetchCompanyInfo = async () => {
+      try {
+        const companyData = await apiClient.getCompanyInfo();
+        setOrganizationSettings(companyData);
+      } catch (error) {
+        console.error('Failed to fetch company information:', error);
+        // Initialize with empty company if none exists
+        setOrganizationSettings({
+          id: 0,
+          name: "",
+          domain: "",
+          industry: "",
+          employee_count: "",
+          timezone: "UTC-5",
+          language: "en",
+          address: "",
+          phone: "",
+          website: "",
+          registration_number: "",
+          founded_year: "",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchCompanyInfo();
+    }
+  }, [user]);
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file (PNG, JPG, or JPEG)');
+        return;
+      }
+      
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size must be less than 5MB');
+        return;
+      }
+      
+      setLogoFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setLogoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleSaveSettings = async (section: string) => {
+    if (section === 'organization' && organizationSettings) {
+      setSaving(true);
+      try {
+        // First upload logo if there's a new file
+        if (logoFile) {
+          const logoResponse = await apiClient.uploadCompanyLogo(logoFile);
+          setOrganizationSettings(logoResponse);
+          setLogoFile(null);
+          setLogoPreview(null);
+        }
+        
+        // Then update other company information
+        const updatedCompany = await apiClient.updateCompanyInfo(organizationSettings);
+        
+        // If we uploaded a logo, preserve it in the final state
+        if (logoFile) {
+          setOrganizationSettings(prev => ({ ...updatedCompany, logo: prev?.logo }));
+        } else {
+          setOrganizationSettings(updatedCompany);
+        }
+        
+        console.log('Organization settings saved successfully!');
+      } catch (error) {
+        console.error('Failed to save organization settings:', error);
+      } finally {
+        setSaving(false);
+      }
+    } else {
+      // For notification settings, just log for now (can be implemented later)
+      console.log(`Saving ${section} settings...`);
+    }
+  };
+
+  if (loading) {
+    return (
+      <>
+        <DashboardHeader />
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+          <div className="container mx-auto px-4 py-8 max-w-6xl">
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading company information...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (!organizationSettings) {
+    return (
+      <>
+        <DashboardHeader />
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+          <div className="container mx-auto px-4 py-8 max-w-6xl">
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="text-center">
+                <p className="text-red-600">Failed to load company information.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -91,8 +214,8 @@ const SettingsPage = () => {
                       <Label htmlFor="company-name">Company Name</Label>
                       <Input 
                         id="company-name" 
-                        value={organizationSettings.companyName}
-                        onChange={(e) => setOrganizationSettings({...organizationSettings, companyName: e.target.value})}
+                        value={organizationSettings.name}
+                        onChange={(e) => setOrganizationSettings({...organizationSettings, name: e.target.value})}
                       />
                     </div>
                     <div>
@@ -125,7 +248,7 @@ const SettingsPage = () => {
                     </div>
                     <div>
                       <Label htmlFor="employee-count">Employee Count</Label>
-                      <Select value={organizationSettings.employeeCount} onValueChange={(value) => setOrganizationSettings({...organizationSettings, employeeCount: value})}>
+                      <Select value={organizationSettings.employee_count} onValueChange={(value) => setOrganizationSettings({...organizationSettings, employee_count: value})}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -202,14 +325,15 @@ const SettingsPage = () => {
                         id="company-website" 
                         value={organizationSettings.website}
                         onChange={(e) => setOrganizationSettings({...organizationSettings, website: e.target.value})}
+                        placeholder="e.g., https://yourcompany.com or yourcompany.com"
                       />
                     </div>
                     <div>
                       <Label htmlFor="registration-number">Registration Number</Label>
                       <Input 
                         id="registration-number" 
-                        value={organizationSettings.registrationNumber}
-                        onChange={(e) => setOrganizationSettings({...organizationSettings, registrationNumber: e.target.value})}
+                        value={organizationSettings.registration_number}
+                        onChange={(e) => setOrganizationSettings({...organizationSettings, registration_number: e.target.value})}
                       />
                     </div>
                   </div>
@@ -219,8 +343,8 @@ const SettingsPage = () => {
                       <Label htmlFor="founded-year">Founded Year</Label>
                       <Input 
                         id="founded-year" 
-                        value={organizationSettings.founded}
-                        onChange={(e) => setOrganizationSettings({...organizationSettings, founded: e.target.value})}
+                        value={organizationSettings.founded_year}
+                        onChange={(e) => setOrganizationSettings({...organizationSettings, founded_year: e.target.value})}
                       />
                     </div>
                   </div>
@@ -228,23 +352,57 @@ const SettingsPage = () => {
                   <div>
                     <Label htmlFor="company-logo">Company Logo</Label>
                     <div className="mt-2 flex items-center space-x-4">
-                      <div className="h-16 w-16 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                        <Users className="h-8 w-8 text-gray-400" />
+                      <div className="h-16 w-16 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden">
+                        {logoPreview ? (
+                          <img 
+                            src={logoPreview} 
+                            alt="Logo preview" 
+                            className="h-full w-full object-cover"
+                          />
+                        ) : organizationSettings?.logo ? (
+                          <img 
+                            src={organizationSettings.logo} 
+                            alt="Current logo" 
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <Users className="h-8 w-8 text-gray-400" />
+                        )}
                       </div>
                       <div>
-                        <Button variant="outline">
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileSelect}
+                          accept="image/*"
+                          className="hidden"
+                          aria-label="Upload company logo"
+                        />
+                        <Button 
+                          variant="outline" 
+                          onClick={handleUploadClick}
+                          type="button"
+                        >
                           <Upload className="h-4 w-4 mr-2" />
                           Upload Logo
                         </Button>
-                        <p className="text-sm text-gray-600 mt-1">Recommended: 200x200px, PNG/JPG</p>
+                        <p className="text-sm text-gray-600 mt-1">Recommended: 200x200px, PNG/JPG (Max: 5MB)</p>
+                        {logoFile && (
+                          <p className="text-sm text-green-600 mt-1">
+                            Selected: {logoFile.name}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex justify-end">
-                    <Button onClick={() => handleSaveSettings('organization')}>
+                    <Button 
+                      onClick={() => handleSaveSettings('organization')}
+                      disabled={saving}
+                    >
                       <Save className="h-4 w-4 mr-2" />
-                      Save Changes
+                      {saving ? 'Saving...' : 'Save Changes'}
                     </Button>
                   </div>
                 </CardContent>

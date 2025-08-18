@@ -1,5 +1,5 @@
 """
-Basic test suite for CyberGuard backend authentication
+Basic test suite for HopeSecure backend authentication
 """
 from django.test import TestCase
 from django.contrib.auth import get_user_model

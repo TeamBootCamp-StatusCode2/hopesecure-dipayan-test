@@ -7,7 +7,7 @@ const DashboardHeader = () => {
         <div className="mr-4 flex">
           <div className="flex items-center gap-2">
             <Shield className="h-6 w-6 text-primary" />
-            <span className="font-bold">CyberGuard</span>
+            <span className="font-bold">HopeSecure</span>
           </div>
         </div>
         

@@ -23,101 +23,39 @@ import {
   Building,
   Award
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { apiClient } from "@/lib/api";
 
 const EmployeeManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("all");
   const [selectedRiskLevel, setSelectedRiskLevel] = useState("all");
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const employees = [
-    {
-      id: 1,
-      name: "John Smith",
-      email: "john.smith@company.com",
-      department: "Marketing",
-      position: "Marketing Manager",
-      riskScore: 85,
-      riskLevel: "High",
-      lastCampaign: "2024-08-12",
-      campaignsParticipated: 5,
-      vulnerabilityCount: 3,
-      trainingCompleted: 2,
-      trainingPending: 3,
-      status: "Active",
-      joinDate: "2023-01-15"
-    },
-    {
-      id: 2,
-      name: "Sarah Wilson",
-      email: "sarah.wilson@company.com",
-      department: "HR",
-      position: "HR Specialist",
-      riskScore: 45,
-      riskLevel: "Medium",
-      lastCampaign: "2024-08-10",
-      campaignsParticipated: 8,
-      vulnerabilityCount: 1,
-      trainingCompleted: 7,
-      trainingPending: 0,
-      status: "Active",
-      joinDate: "2022-03-20"
-    },
-    {
-      id: 3,
-      name: "Mike Johnson",
-      email: "mike.johnson@company.com",
-      department: "Finance",
-      position: "Financial Analyst",
-      riskScore: 25,
-      riskLevel: "Low",
-      lastCampaign: "2024-08-08",
-      campaignsParticipated: 12,
-      vulnerabilityCount: 0,
-      trainingCompleted: 10,
-      trainingPending: 0,
-      status: "Active",
-      joinDate: "2021-06-10"
-    },
-    {
-      id: 4,
-      name: "Lisa Davis",
-      email: "lisa.davis@company.com",
-      department: "IT",
-      position: "Software Developer",
-      riskScore: 15,
-      riskLevel: "Low",
-      lastCampaign: "2024-08-05",
-      campaignsParticipated: 15,
-      vulnerabilityCount: 0,
-      trainingCompleted: 12,
-      trainingPending: 0,
-      status: "Active",
-      joinDate: "2020-11-01"
-    },
-    {
-      id: 5,
-      name: "Alex Brown",
-      email: "alex.brown@company.com",
-      department: "Sales",
-      position: "Sales Representative",
-      riskScore: 70,
-      riskLevel: "High",
-      lastCampaign: "2024-08-13",
-      campaignsParticipated: 6,
-      vulnerabilityCount: 4,
-      trainingCompleted: 1,
-      trainingPending: 5,
-      status: "Training Required",
-      joinDate: "2023-05-08"
-    }
-  ];
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        // This would fetch real employee data from API
+        // const employeeData = await apiClient.getEmployees();
+        // setEmployees(employeeData);
+        setEmployees([]); // Start with empty array - no mock data
+      } catch (error) {
+        console.error('Failed to fetch employees:', error);
+        setEmployees([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmployees();
+  }, []);
 
   const departments = ["all", "Marketing", "HR", "Finance", "IT", "Sales"];
   const riskLevels = ["all", "High", "Medium", "Low"];
 
   const filteredEmployees = employees.filter(employee => {
-    const matchesSearch = employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = employee.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          employee.department.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDepartment = selectedDepartment === "all" || employee.department === selectedDepartment;
@@ -198,7 +136,7 @@ const EmployeeManagement = () => {
                     </div>
                     <div>
                       <label className="text-sm font-medium">Email Address</label>
-                      <Input placeholder="employee@company.com" />
+                      <Input placeholder="employee@domain.com" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">

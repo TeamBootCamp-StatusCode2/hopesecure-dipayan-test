@@ -378,33 +378,19 @@ export const useCampaignStats = (campaignId: number) => {
 
 ## 🚀 Testing Integration
 
-### Test with Sample Accounts
+### Create Test Accounts
 
-Use these test accounts that were created with sample data:
-
-```
-Admin Account:
-- Email: admin@cyberguard.com
-- Password: (the one you set when creating superuser)
-
-Manager Account:
-- Email: manager@cyberguard.com
-- Password: password123
-
-Analyst Account:
-- Email: analyst@cyberguard.com
-- Password: password123
-```
+Create test accounts manually through the Django admin interface or API endpoints.
 
 ### Verify API Endpoints
 
 Test each endpoint in your browser or with curl:
 
 ```bash
-# Test login
+# Test login with your created account
 curl -X POST http://127.0.0.1:8000/api/auth/login/ \
   -H "Content-Type: application/json" \
-  -d '{"email": "manager@cyberguard.com", "password": "password123"}'
+  -d '{"email": "your-email@example.com", "password": "your-password"}'
 
 # Test templates (use token from login response)
 curl -H "Authorization: Token YOUR_TOKEN_HERE" \

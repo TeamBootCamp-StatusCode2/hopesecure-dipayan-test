@@ -9,7 +9,7 @@ import json
 BASE_URL = 'http://127.0.0.1:8000/api'
 
 def test_api():
-    print("🧪 Testing CyberGuard Backend API")
+    print("🧪 Testing HopeSecure Backend API")
     print("=" * 50)
     
     # Test user registration

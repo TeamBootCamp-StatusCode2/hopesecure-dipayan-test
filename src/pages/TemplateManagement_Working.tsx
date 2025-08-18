@@ -289,7 +289,7 @@ const TemplateManagement = () => {
       riskLevel: "beginner",
       preview: "Urgent security notification email",
       emailSubject: "Security Alert: Suspicious Activity Detected",
-      domain: "security-alerts.company.com",
+      domain: "security-alerts.domain.com",
       difficulty: "Beginner",
       rating: 3.8,
       tags: ["Security", "Alert", "Urgent"],
@@ -485,7 +485,7 @@ const TemplateManagement = () => {
                             <Label htmlFor="sender-email">Sender Email</Label>
                             <Input 
                               id="sender-email" 
-                              placeholder="support@company.com"
+                              placeholder="support@domain.com"
                               value={templateSettings.senderEmail}
                               onChange={(e) => setTemplateSettings({...templateSettings, senderEmail: e.target.value})}
                             />
@@ -519,7 +519,7 @@ const TemplateManagement = () => {
                           <Label htmlFor="landing-page">Landing Page URL</Label>
                           <Input 
                             id="landing-page" 
-                            placeholder="https://phishing-landing.company.com"
+                            placeholder="https://phishing-landing.domain.com"
                             value={templateSettings.landingPageUrl}
                             onChange={(e) => setTemplateSettings({...templateSettings, landingPageUrl: e.target.value})}
                           />
@@ -623,7 +623,7 @@ const TemplateManagement = () => {
                             <div>
                               <Label>Target Domain</Label>
                               <Input 
-                                placeholder="company.com"
+                                placeholder="domain.com"
                                 value={mimicSettings.targetDomain}
                                 onChange={(e) => setMimicSettings({...mimicSettings, targetDomain: e.target.value})}
                               />
@@ -880,7 +880,7 @@ const TemplateManagement = () => {
                       </div>
                       <div>
                         <p className="font-semibold">From: {previewTemplate.domain}</p>
-                        <p className="text-sm text-gray-600">To: employee@company.com</p>
+                        <p className="text-sm text-gray-600">To: employee@domain.com</p>
                       </div>
                     </div>
                     <Badge variant="outline" className="text-red-600 border-red-200">

@@ -1,6 +1,12 @@
-# CyberGuard - Complete Cybersecurity Simulation Platform
+# HopeSecure - Complete Cybersecurity Simulation Platform
 
-A full-stack cybersecurity awareness platform combining a React frontend with a Django REST API backend.
+A full-stack cybersecurity awareness platform combining a React frontend with a ## 🔐 Authentication
+
+The system uses token-based authentication:
+
+1. **Login**: Get token with credentials
+2. **Requests**: Include `Authorization: Token <token>` header
+3. **Logout**: Invalidate tokenI backend.
 
 ## 🏗️ Project Structure
 
@@ -17,7 +23,7 @@ statuscode-backup/
 │   └── package.json           # Frontend dependencies
 │
 ├── 📁 backend/                  # Django REST API
-│   ├── cyberguard_backend/    # Main Django project
+│   ├── hopesecure_backend/    # Main Django project
 │   ├── authentication/       # User management
 │   ├── templates/            # Phishing templates
 │   ├── campaigns/            # Campaign management
@@ -149,9 +155,9 @@ The system uses token-based authentication:
 
 ### Sample Accounts
 ```
-Admin: admin@cyberguard.com / [your-password]
-Manager: manager@cyberguard.com / password123
-Analyst: analyst@cyberguard.com / password123
+Admin: admin@hopesecure.com / [your-password]
+Manager: manager@hopesecure.com / password123
+Analyst: analyst@hopesecure.com / password123
 ```
 
 ## 📊 Features

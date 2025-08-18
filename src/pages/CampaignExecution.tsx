@@ -43,21 +43,11 @@ const CampaignExecution = () => {
   };
   
   // In real app, this would come from the previous page's form data or API
-  // For now, simulating with a sample email list that could have come from a textarea
   const [campaignData] = useState({
-    name: "Company Login Page Simulation",
-    department: "HR Department", 
-    template: "Company Login Page",
-    emailInput: `john.smith@company.com,
-sarah.wilson@company.com, 
-mike.johnson@company.com
-lisa.davis@company.com;alex.brown@company.com
-emma.taylor@company.com
-david.clark@company.com, jennifer.white@company.com
-robert.lee@company.com
-maria.garcia@company.com;chris.martin@company.com,jessica.thompson@company.com
-kevin.anderson@company.com
-amanda.robinson@company.com,daniel.harris@company.com`
+    name: "Security Awareness Campaign",
+    department: "All Departments", 
+    template: "Security Alert Template",
+    emailInput: "" // Start with empty string - no mock emails
   });
   
   const targetEmails = parseEmailList(campaignData.emailInput);

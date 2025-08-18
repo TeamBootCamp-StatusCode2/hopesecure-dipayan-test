@@ -85,8 +85,8 @@ export const templateData: Template[] = [
 </body>
 </html>`,
     senderName: "IT Security Team",
-    senderEmail: "security@company.com",
-    landingPageUrl: "https://phishing-test.company.com/login",
+    senderEmail: "security@domain.com",
+    landingPageUrl: "https://phishing-test.domain.com/login",
     priority: "high",
     trackingEnabled: true
   },
@@ -102,7 +102,7 @@ export const templateData: Template[] = [
     riskLevel: "beginner",
     preview: "Urgent security notification email",
     emailSubject: "Security Alert: Suspicious Activity Detected",
-    domain: "security-alerts.company.com",
+    domain: "security-alerts.domain.com",
     difficulty: "Beginner",
     rating: 3.8,
     tags: ["Security", "Alert", "Urgent"],
@@ -149,8 +149,8 @@ export const templateData: Template[] = [
 </body>
 </html>`,
     senderName: "Security Team",
-    senderEmail: "alerts@company.com",
-    landingPageUrl: "https://phishing-test.company.com/security",
+    senderEmail: "alerts@domain.com",
+    landingPageUrl: "https://phishing-test.domain.com/security",
     priority: "urgent",
     trackingEnabled: true
   },
@@ -226,7 +226,7 @@ export const templateData: Template[] = [
 </html>`,
     senderName: "Microsoft Office Team",
     senderEmail: "updates@microsoft-office.com",
-    landingPageUrl: "https://phishing-test.company.com/office-update",
+    landingPageUrl: "https://phishing-test.domain.com/office-update",
     priority: "high",
     trackingEnabled: true
   },
@@ -242,7 +242,7 @@ export const templateData: Template[] = [
     riskLevel: "intermediate",
     preview: "HR enrollment form requesting sensitive data",
     emailSubject: "Urgent: Complete Your Benefits Enrollment",
-    domain: "hr-benefits.company.com",
+    domain: "hr-benefits.domain.com",
     difficulty: "Intermediate",
     rating: 4.1,
     tags: ["HR", "Benefits", "Forms", "Personal Info"],
@@ -336,8 +336,8 @@ export const templateData: Template[] = [
 </body>
 </html>`,
     senderName: "HR Benefits Team",
-    senderEmail: "benefits@company.com",
-    landingPageUrl: "https://phishing-test.company.com/benefits",
+    senderEmail: "benefits@domain.com",
+    landingPageUrl: "https://phishing-test.domain.com/benefits",
     priority: "high",
     trackingEnabled: true
   }

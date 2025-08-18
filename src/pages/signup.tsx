@@ -1,85 +1,210 @@
-// src/pages/Signup.tsx
-import React from "react";
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
-const Signup: React.FC = () => {
+const SignUp: React.FC = () => {
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    firstName: '',
+    lastName: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const { register } = useAuth();
+  const navigate = useNavigate();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    // Validation
+    if (!formData.username || !formData.email || !formData.password || !formData.firstName || !formData.lastName) {
+      setError('All fields are required');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await register({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        password_confirm: formData.confirmPassword,
+        first_name: formData.firstName,
+        last_name: formData.lastName
+      });
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center mb-2">Sign Up</h2>
-        <p className="text-gray-600 text-center mb-6">
-          Please fill in this form to create an account!
-        </p>
-
-        <form>
-          {/* First & Last Name */}
-          <div className="flex gap-4 mb-4">
-            <input
-              type="text"
-              placeholder="First Name"
-              className="w-1/2 p-2 border border-gray-300 rounded"
-            />
-            <input
-              type="text"
-              placeholder="Last Name"
-              className="w-1/2 p-2 border border-gray-300 rounded"
-            />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+            Create your HopeSecure account
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Join us to strengthen your organization's cybersecurity
+          </p>
+        </div>
+        
+        <form className="mt-8 space-y-6 bg-white p-8 rounded-lg shadow" onSubmit={handleSubmit}>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                  First Name
+                </label>
+                <input
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  required
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="First name"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+                  Last Name
+                </label>
+                <input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  required
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Last name"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                Username
+              </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                required
+                value={formData.username}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your username"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your email address"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your password"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                required
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Confirm your password"
+              />
+            </div>
           </div>
 
-          {/* Email */}
-          <input
-            type="email"
-            placeholder="Email"
-            className="w-full p-2 border border-gray-300 rounded mb-4"
-          />
-
-          {/* Password */}
-          <input
-            type="password"
-            placeholder="Password"
-            className="w-full p-2 border border-gray-300 rounded mb-4"
-          />
-
-          {/* Confirm Password */}
-          <input
-            type="password"
-            placeholder="Confirm Password"
-            className="w-full p-2 border border-gray-300 rounded mb-4"
-          />
-
-          {/* Terms & Conditions */}
-          <div className="flex items-center mb-4 text-sm">
-            <input type="checkbox" className="mr-2" />
-            <span>
-              I accept the{" "}
-              <a href="#" className="text-blue-500 underline">
-                Terms of Use
-              </a>{" "}
-              &{" "}
-              <a href="#" className="text-blue-500 underline">
-                Privacy Policy
-              </a>
-            </span>
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Creating Account...' : 'Sign Up'}
+            </button>
           </div>
-
-          {/* Sign Up Button */}
-          <button
-            type="submit"
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white p-2 rounded"
-          >
-            Sign Up
-          </button>
+          
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              Already have an account?{' '}
+              <Link to="/signin" className="font-medium text-blue-600 hover:text-blue-500">
+                Sign in here
+              </Link>
+            </p>
+          </div>
         </form>
-
-        {/* Already have an account */}
-        <p className="text-center text-sm mt-4">
-          Already have an account?{" "}
-          <a href="#" className="text-blue-500 underline">
-            Login here
-          </a>
-        </p>
       </div>
     </div>
   );
 };
 
-export default Signup;
+export default SignUp;

@@ -1,5 +1,5 @@
 """
-URL configuration for cyberguard_backend project.
+URL configuration for hopesecure_backend project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.2/topics/http/urls/
@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/campaigns/', include('campaigns.urls')),
     path('api/employees/', include('employees.urls')),
     path('api/reports/', include('reports.urls')),
+    path('api/organization/', include('organization.urls')),
 ]
 
 # Serve media files during development

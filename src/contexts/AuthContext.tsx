@@ -51,6 +51,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUserData(userData);
         } catch (error) {
           console.error('Failed to get user profile:', error);
+          // Clear invalid token
           apiClient.clearToken();
           clearUserData();
         }

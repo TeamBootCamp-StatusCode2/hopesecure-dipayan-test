@@ -39,27 +39,27 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/campaign/create" element={
-              <ProtectedRoute roles={['admin', 'manager', 'analyst']}>
+              <ProtectedRoute>
                 <CreateCampaign />
               </ProtectedRoute>
             } />
             <Route path="/campaign/execute" element={
-              <ProtectedRoute roles={['admin', 'manager', 'analyst']}>
+              <ProtectedRoute>
                 <CampaignExecution />
               </ProtectedRoute>
             } />
             <Route path="/templates" element={
-              <ProtectedRoute roles={['admin', 'manager', 'analyst']}>
+              <ProtectedRoute>
                 <TemplateManagement />
               </ProtectedRoute>
             } />
             <Route path="/employees" element={
-              <ProtectedRoute roles={['admin', 'manager']}>
+              <ProtectedRoute>
                 <EmployeeManagement />
               </ProtectedRoute>
             } />
             <Route path="/reports" element={
-              <ProtectedRoute roles={['admin', 'manager', 'analyst']}>
+              <ProtectedRoute>
                 <AdvancedReports />
               </ProtectedRoute>
             } />

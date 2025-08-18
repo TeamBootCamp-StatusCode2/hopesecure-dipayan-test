@@ -80,13 +80,6 @@ const SignIn = () => {
             />
           </div>
 
-          {/* Demo Accounts Info */}
-          <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm">
-            <p className="font-medium mb-1">Demo Accounts:</p>
-            <p>Manager: manager@cyberguard.com / password123</p>
-            <p>Analyst: analyst@cyberguard.com / password123</p>
-          </div>
-
           {/* Forgot Password */}
           <div className="text-right">
             <a

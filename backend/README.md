@@ -1,6 +1,6 @@
-# CyberGuard Backend - Django REST API
+# HopeSecure Backend - Django REST API
 
-A comprehensive Django backend for the CyberGuard cybersecurity simulation platform that provides phishing simulation, employee management, and security awareness training capabilities.
+A comprehensive Django backend for the HopeSecure cybersecurity simulation platform that provides phishing simulation, employee management, and security awareness training capabilities.
 
 ## 🚀 Features
 
@@ -174,7 +174,7 @@ Authorization: Token your_token_here
 curl -X POST http://127.0.0.1:8000/api/auth/login/ \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "admin@cyberguard.com",
+    "email": "admin@hopesecure.com",
     "password": "your_password"
   }'
 ```
@@ -184,7 +184,7 @@ Response:
 {
   "user": {
     "id": 1,
-    "email": "admin@cyberguard.com",
+    "email": "admin@hopesecure.com",
     "username": "admin",
     "first_name": "Admin",
     "last_name": "User",
@@ -227,7 +227,7 @@ Response:
 
 ```
 backend/
-├── cyberguard_backend/     # Main project settings
+├── hopesecure_backend/     # Main project settings
 ├── authentication/        # User authentication app
 ├── templates/             # Template management app
 ├── campaigns/             # Campaign management app
@@ -260,7 +260,7 @@ The project uses SQLite by default. For production, consider PostgreSQL:
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'cyberguard_db',
+        'NAME': 'hopesecure_db',
         'USER': 'your_username',
         'PASSWORD': 'your_password',
         'HOST': 'localhost',

@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react";
+import { apiClient } from "@/lib/api";
 import { 
   Plus, 
   BarChart3, 
@@ -19,70 +21,57 @@ import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [recentCampaigns, setRecentCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const recentCampaigns = [
-    {
-      id: 1,
-      name: "Q4 Security Assessment",
-      status: "Active",
-      targets: 150,
-      opened: 89,
-      clicked: 23,
-      submitted: 8,
-      date: "2024-01-15"
-    },
-    {
-      id: 2,
-      name: "New Employee Training",
-      status: "Completed", 
-      targets: 45,
-      opened: 42,
-      clicked: 12,
-      submitted: 3,
-      date: "2024-01-10"
-    },
-    {
-      id: 3,
-      name: "Executive Phishing Test",
-      status: "Scheduled",
-      targets: 25,
-      opened: 0,
-      clicked: 0,
-      submitted: 0,
-      date: "2024-01-20"
-    }
-  ];
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        // This would fetch real campaign data from API
+        // const campaignData = await apiClient.getCampaigns();
+        // setRecentCampaigns(campaignData.slice(0, 3)); // Get most recent 3
+        setRecentCampaigns([]); // Start with empty array - no mock data
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+        setRecentCampaigns([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const stats = [
+    fetchDashboardData();
+  }, []);
+
+  const [stats, setStats] = useState([
     {
       title: "Total Campaigns",
-      value: "12",
-      change: "+3 this month",
+      value: "0",
+      change: "No data",
       icon: Target,
       color: "text-security-blue"
     },
     {
       title: "Employees Tested",
-      value: "1,247",
-      change: "+156 this month", 
+      value: "0",
+      change: "No data", 
       icon: Users,
       color: "text-security-green"
     },
     {
       title: "Risk Score",
-      value: "Medium",
-      change: "Improved from High",
+      value: "N/A",
+      change: "No data",
       icon: Shield,
       color: "text-yellow-600"
     },
     {
       title: "Avg Click Rate",
-      value: "18.5%",
-      change: "-5.2% vs last month",
+      value: "0%",
+      change: "No data",
       icon: BarChart3,
       color: "text-security-green"
     }
-  ];
+  ]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
