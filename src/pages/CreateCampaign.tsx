@@ -8,13 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Upload, Users, Mail, Calendar, Target, Eye, Star, BarChart3, AlertTriangle, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { getActiveTemplates, getUserCreatedTemplates, Template } from "@/data/templates";
 import { apiClient } from "@/lib/api";
 
 const CreateCampaign = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null);
   const [campaignType, setCampaignType] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,7 +38,20 @@ const CreateCampaign = () => {
   useEffect(() => {
     loadUserTemplates();
     loadEmployees();
-  }, []);
+    
+    // Check if editing a draft campaign
+    if (location.state?.editCampaign) {
+      const campaign = location.state.editCampaign;
+      setFormData({
+        name: campaign.name || "",
+        description: campaign.description || "",
+        scheduleDate: campaign.scheduled_date || "",
+        targetEmails: campaign.target_emails || [],
+      });
+      setCampaignType(campaign.campaign_type || "");
+      setSelectedTemplate(campaign.template_id || null);
+    }
+  }, [location.state]);
 
   // Load employees from Employee Management
   const loadEmployees = async () => {
@@ -126,14 +140,15 @@ const CreateCampaign = () => {
         const parsed = JSON.parse(storedTemplates);
         setUserTemplates(parsed);
       } else {
-        // If no stored templates, show empty array (no default templates)
-        setUserTemplates([]);
+        // If no stored templates, load pre-made templates as fallback
+        const preMadeTemplates = getActiveTemplates();
+        setUserTemplates(preMadeTemplates);
       }
     }
   };
 
-  // Get templates from user-created only
-  const templates = userTemplates;
+  // Get templates - use user templates or fallback to pre-made templates
+  const templates = userTemplates.length > 0 ? userTemplates : getActiveTemplates();
 
   const campaignTypes = [
     { value: "credential", label: "Credential Phishing", description: "Test if users enter login credentials" },
@@ -219,13 +234,15 @@ const CreateCampaign = () => {
       const campaignData = {
         name: formData.name,
         description: formData.description,
-        campaign_type: campaignType,
+        campaign_type: Array.isArray(campaignType) ? campaignType[0] : campaignType,
         template_id: selectedTemplate,
         scheduled_date: formData.scheduleDate || null,
         target_emails: formData.targetEmails.filter(email => email.trim()),
         status: isDraft ? 'draft' : 'scheduled',
         created_at: new Date().toISOString()
       };
+
+      console.log('Campaign data being sent:', campaignData); // Debug log
 
       // Try to save via API
       try {
@@ -363,7 +380,7 @@ const CreateCampaign = () => {
                     You need to create email templates first in the Advanced Template Management section before you can create campaigns.
                   </p>
                   <Button 
-                    onClick={() => navigate('/advanced-templates')}
+                    onClick={() => navigate('/templates')}
                     className="bg-security-blue hover:bg-security-blue/90"
                   >
                     Create Templates

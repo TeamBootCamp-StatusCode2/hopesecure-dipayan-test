@@ -1,59 +1,12 @@
-from django.contrib.auth.models import AbstractUser
+"""
+Activity Logging System for Admin Dashboard
+"""
 from django.db import models
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+import json
 
-
-class User(AbstractUser):
-    """Extended user model for the cybersecurity platform"""
-    ROLE_CHOICES = [
-        ('super_admin', 'Super Administrator'),
-        ('admin', 'Administrator'),
-        ('manager', 'Security Manager'),
-        ('analyst', 'Security Analyst'),
-        ('employee', 'Employee'),
-    ]
-    
-    email = models.EmailField(unique=True)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='employee')
-    department = models.CharField(max_length=100, blank=True)
-    phone_number = models.CharField(max_length=15, blank=True)
-    is_email_verified = models.BooleanField(default=False)
-    organization = models.ForeignKey('organization.Company', on_delete=models.CASCADE, null=True, blank=True, related_name='users')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
-    
-    def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.email})"
-    
-    @property
-    def full_name(self):
-        return f"{self.first_name} {self.last_name}"
-    
-    @property
-    def is_super_admin(self):
-        """Check if user is a super administrator"""
-        return self.role == 'super_admin'
-    
-    @property
-    def is_org_admin(self):
-        """Check if user is an organization administrator"""
-        return self.role == 'admin'
-
-
-class UserProfile(models.Model):
-    """Extended profile information for users"""
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
-    bio = models.TextField(blank=True)
-    last_login_ip = models.GenericIPAddressField(blank=True, null=True)
-    security_score = models.IntegerField(default=0)  # Based on phishing test performance
-    training_completed = models.BooleanField(default=False)
-    notifications_enabled = models.BooleanField(default=True)
-    
-    def __str__(self):
-        return f"Profile for {self.user.full_name}"
+User = get_user_model()
 
 
 class ActivityLog(models.Model):
@@ -145,3 +98,35 @@ class SystemAlert(models.Model):
     
     def __str__(self):
         return f"{self.title} - {self.get_severity_display()}"
+
+
+def log_activity(user=None, organization=None, action_type='admin_action', 
+                description='', severity='low', ip_address=None, 
+                user_agent='', metadata=None):
+    """Helper function to log activities"""
+    if metadata is None:
+        metadata = {}
+    
+    ActivityLog.objects.create(
+        user=user,
+        organization=organization,
+        action_type=action_type,
+        description=description,
+        severity=severity,
+        ip_address=ip_address,
+        user_agent=user_agent,
+        metadata=metadata
+    )
+
+
+def create_system_alert(alert_type, title, description, severity='medium', 
+                       organization=None, created_by=None):
+    """Helper function to create system alerts"""
+    SystemAlert.objects.create(
+        alert_type=alert_type,
+        title=title,
+        description=description,
+        severity=severity,
+        organization=organization,
+        created_by=created_by
+    )

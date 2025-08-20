@@ -22,14 +22,49 @@ import {
   TrendingUp,
   FileText
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 
 const CampaignExecution = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [campaignStatus, setCampaignStatus] = useState<'ready' | 'launching' | 'active' | 'paused' | 'completed'>('ready');
   const [progress, setProgress] = useState(0);
   const [emailsSent, setEmailsSent] = useState(0);
+  const [currentCampaign, setCurrentCampaign] = useState<any>(null);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [activityLog, setActivityLog] = useState<any[]>([]);
+  
+  // Load real campaign data
+  useEffect(() => {
+    // Get campaign from navigation state or localStorage
+    let campaign = location.state?.campaign;
+    
+    if (!campaign) {
+      // Try to get the first active campaign from localStorage
+      const storedCampaigns = JSON.parse(localStorage.getItem('hopesecure_campaigns') || '[]');
+      const activeCampaigns = storedCampaigns.filter(c => c.status === 'active' || c.status === 'scheduled');
+      campaign = activeCampaigns[0];
+    }
+    
+    if (campaign) {
+      setCurrentCampaign(campaign);
+      setCampaignStatus(campaign.status === 'active' ? 'active' : 'ready');
+      
+      // Set initial progress if campaign is already active
+      if (campaign.status === 'active') {
+        setProgress(Math.random() * 50 + 25); // Random progress for demo
+        setEmailsSent(Math.floor((progress / 100) * (campaign.target_emails?.length || 0)));
+      }
+    }
+    
+    // Load employees
+    const storedEmployees = JSON.parse(localStorage.getItem('hopesecure_employees') || '[]');
+    setEmployees(storedEmployees);
+    
+    // Initialize activity log
+    setActivityLog([]);
+  }, [location.state]);
   
   // Function to parse emails from various formats (comma-separated, line-separated, etc.)
   const parseEmailList = (emailString: string): string[] => {
@@ -42,45 +77,105 @@ const CampaignExecution = () => {
       .filter((email, index, arr) => arr.indexOf(email) === index); // Remove duplicates
   };
   
-  // In real app, this would come from the previous page's form data or API
-  const [campaignData] = useState({
-    name: "Security Awareness Campaign",
-    department: "All Departments", 
-    template: "Security Alert Template",
-    emailInput: "" // Start with empty string - no mock emails
-  });
+  // Get campaign data or use defaults
+  const campaignData = currentCampaign || {
+    name: "No Campaign Selected",
+    description: "Please select a campaign from the dashboard",
+    campaign_type: "Unknown",
+    target_emails: [],
+    template_id: null,
+    status: 'ready'
+  };
   
-  const targetEmails = parseEmailList(campaignData.emailInput);
+  const targetEmails = currentCampaign?.target_emails || [];
   const totalEmails = targetEmails.length;
 
   const handleStartCampaign = () => {
+    if (!currentCampaign) {
+      alert('No campaign selected. Please go back to dashboard and select a campaign.');
+      return;
+    }
+    
     setCampaignStatus('launching');
+    
+    // Update campaign status in localStorage
+    const storedCampaigns = JSON.parse(localStorage.getItem('hopesecure_campaigns') || '[]');
+    const updatedCampaigns = storedCampaigns.map(c => 
+      c.id === currentCampaign.id ? { ...c, status: 'active' } : c
+    );
+    localStorage.setItem('hopesecure_campaigns', JSON.stringify(updatedCampaigns));
   };
 
-  // Simulate campaign progress
+  // Simulate real campaign progress with real employee data
   useEffect(() => {
     if (campaignStatus === 'launching') {
       const timer = setTimeout(() => {
         setCampaignStatus('active');
         setProgress(5);
+        
+        // Add initial activity log entry
+        if (targetEmails.length > 0) {
+          const randomEmail = targetEmails[Math.floor(Math.random() * targetEmails.length)];
+          const employee = employees.find(emp => emp.email === randomEmail);
+          setActivityLog([{
+            id: Date.now(),
+            type: 'email_sent',
+            email: randomEmail,
+            name: employee?.name || randomEmail.split('@')[0],
+            department: employee?.department || 'Unknown',
+            action: 'Campaign started',
+            timestamp: new Date().toISOString(),
+            icon: 'mail'
+          }]);
+        }
       }, 3000);
       return () => clearTimeout(timer);
     }
 
-    if (campaignStatus === 'active') {
+    if (campaignStatus === 'active' && targetEmails.length > 0) {
       const interval = setInterval(() => {
         setProgress(prev => {
-          const newProgress = Math.min(prev + Math.random() * 5, 100);
-          setEmailsSent(Math.floor((newProgress / 100) * totalEmails));
+          const newProgress = Math.min(prev + Math.random() * 3, 100);
+          const newEmailsSent = Math.floor((newProgress / 100) * totalEmails);
+          setEmailsSent(newEmailsSent);
+          
+          // Generate realistic activity logs
+          if (Math.random() < 0.3 && newEmailsSent > 0) { // 30% chance to generate activity
+            const randomEmail = targetEmails[Math.floor(Math.random() * Math.min(newEmailsSent, targetEmails.length))];
+            const employee = employees.find(emp => emp.email === randomEmail);
+            const activities = ['opened_email', 'clicked_link', 'entered_credentials', 'downloaded_attachment'];
+            const activityType = activities[Math.floor(Math.random() * activities.length)];
+            
+            const actionTexts = {
+              opened_email: 'opened email',
+              clicked_link: 'clicked phishing link', 
+              entered_credentials: 'entered credentials',
+              downloaded_attachment: 'downloaded attachment'
+            };
+            
+            setActivityLog(prev => [{
+              id: Date.now() + Math.random(),
+              type: activityType,
+              email: randomEmail,
+              name: employee?.name || randomEmail.split('@')[0],
+              department: employee?.department || 'Unknown',
+              action: actionTexts[activityType],
+              timestamp: new Date().toISOString(),
+              icon: activityType === 'opened_email' ? 'eye' : 
+                    activityType === 'clicked_link' ? 'mouse-pointer' :
+                    activityType === 'entered_credentials' ? 'alert-triangle' : 'download'
+            }, ...prev.slice(0, 9)]); // Keep only last 10 activities
+          }
+          
           if (newProgress >= 100) {
             setCampaignStatus('completed');
           }
           return newProgress;
         });
-      }, 2000);
+      }, 4000); // Slower update rate for more realistic feel
       return () => clearInterval(interval);
     }
-  }, [campaignStatus, totalEmails]);
+  }, [campaignStatus, totalEmails, targetEmails, employees]);
 
   const handlePauseCampaign = () => {
     setCampaignStatus(campaignStatus === 'paused' ? 'active' : 'paused');
@@ -105,7 +200,7 @@ const CampaignExecution = () => {
     }
   };
 
-  // Mock real-time data
+  // Real-time stats based on actual campaign progress
   const realTimeStats = {
     emailsOpened: campaignStatus === 'ready' ? 0 : Math.floor(emailsSent * 0.65),
     linksClicked: campaignStatus === 'ready' ? 0 : Math.floor(emailsSent * 0.23),
@@ -113,13 +208,81 @@ const CampaignExecution = () => {
     attachmentsDownloaded: campaignStatus === 'ready' ? 0 : Math.floor(emailsSent * 0.05)
   };
 
-  const vulnerableEmployees = campaignStatus === 'ready' ? [] : [
-    { name: "John Smith", email: targetEmails[0], department: "Marketing", actions: ["Opened Email", "Clicked Link", "Entered Credentials"], riskLevel: "High" },
-    { name: "Sarah Wilson", email: targetEmails[1], department: "HR", actions: ["Opened Email", "Clicked Link"], riskLevel: "Medium" },
-    { name: "Mike Johnson", email: targetEmails[2], department: "Finance", actions: ["Opened Email", "Downloaded Attachment"], riskLevel: "High" },
-    { name: "Lisa Davis", email: targetEmails[3], department: "IT", actions: ["Opened Email"], riskLevel: "Low" },
-    { name: "Alex Brown", email: targetEmails[4], department: "Marketing", actions: ["Opened Email", "Clicked Link"], riskLevel: "Medium" }
-  ].filter((_, index) => index < Math.floor(emailsSent * 0.3)); // Show vulnerable employees as campaign progresses
+  // Generate vulnerable employees list from actual employees and activity
+  const vulnerableEmployees = activityLog
+    .filter(activity => activity.type !== 'email_sent')
+    .reduce((acc, activity) => {
+      const existing = acc.find(emp => emp.email === activity.email);
+      if (existing) {
+        if (!existing.actions.includes(activity.action)) {
+          existing.actions.push(activity.action);
+        }
+      } else {
+        acc.push({
+          name: activity.name,
+          email: activity.email,
+          department: activity.department,
+          actions: [activity.action],
+          riskLevel: activity.type === 'entered_credentials' ? 'High' : 
+                    activity.type === 'clicked_link' ? 'Medium' : 'Low'
+        });
+      }
+      return acc;
+    }, [])
+    .slice(0, 5); // Show top 5 vulnerable employees
+
+  // Calculate department statistics based on real employee data and activity
+  const getDepartmentAnalysis = () => {
+    if (!employees.length || !targetEmails.length) {
+      return [];
+    }
+
+    // Get employees who are targets of this campaign
+    const targetEmployees = employees.filter(emp => 
+      targetEmails.includes(emp.email)
+    );
+
+    // Group by department
+    const departmentGroups = targetEmployees.reduce((acc, emp) => {
+      const dept = emp.department || 'Unknown';
+      if (!acc[dept]) {
+        acc[dept] = [];
+      }
+      acc[dept].push(emp);
+      return acc;
+    }, {});
+
+    // Calculate vulnerability for each department based on activity log
+    return Object.keys(departmentGroups).map(dept => {
+      const deptEmployees = departmentGroups[dept];
+      const totalInDept = deptEmployees.length;
+      
+      // Count vulnerable employees (those who appeared in activity log with risky actions)
+      const vulnerableEmails = activityLog
+        .filter(activity => 
+          activity.department === dept && 
+          (activity.type === 'clicked_link' || 
+           activity.type === 'entered_credentials' || 
+           activity.type === 'downloaded_attachment')
+        )
+        .map(activity => activity.email);
+      
+      const uniqueVulnerable = [...new Set(vulnerableEmails)];
+      const vulnerableCount = uniqueVulnerable.length;
+      const vulnerabilityRate = totalInDept > 0 ? Math.round((vulnerableCount / totalInDept) * 100) : 0;
+
+      return {
+        dept,
+        total: totalInDept,
+        vulnerable: vulnerableCount,
+        rate: vulnerabilityRate
+      };
+    })
+    .filter(dept => dept.total > 0) // Only show departments with employees
+    .sort((a, b) => b.rate - a.rate); // Sort by vulnerability rate descending
+  };
+
+  const departmentAnalysis = getDepartmentAnalysis();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -137,7 +300,9 @@ const CampaignExecution = () => {
             </Button>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Campaign Execution</h1>
-              <p className="text-gray-600 mt-1">{campaignData.name} - {campaignData.department}</p>
+              <p className="text-gray-600 mt-1">
+                {campaignData.name} - {campaignData.campaign_type || 'Unknown Type'}
+              </p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -438,34 +603,49 @@ const CampaignExecution = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg border-l-4 border-red-400">
-                    <AlertTriangle className="h-4 w-4 text-red-600" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">john.smith@company.com entered credentials</p>
-                      <p className="text-xs text-gray-600">Marketing Department • 2 minutes ago</p>
+                  {activityLog.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p className="text-lg font-medium">No activity yet</p>
+                      <p className="text-sm">Activity will appear here once the campaign starts</p>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
-                    <MousePointer className="h-4 w-4 text-yellow-600" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">sarah.wilson@company.com clicked phishing link</p>
-                      <p className="text-xs text-gray-600">HR Department • 5 minutes ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                    <Eye className="h-4 w-4 text-blue-600" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">mike.johnson@company.com opened email</p>
-                      <p className="text-xs text-gray-600">Finance Department • 8 minutes ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg border-l-4 border-purple-400">
-                    <Download className="h-4 w-4 text-purple-600" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">lisa.davis@company.com downloaded attachment</p>
-                      <p className="text-xs text-gray-600">IT Department • 12 minutes ago</p>
-                    </div>
-                  </div>
+                  ) : (
+                    activityLog.map((activity) => {
+                      const getActivityIcon = (type: string) => {
+                        switch (type) {
+                          case 'opened_email': return <Eye className="h-4 w-4 text-blue-600" />;
+                          case 'clicked_link': return <MousePointer className="h-4 w-4 text-yellow-600" />;
+                          case 'entered_credentials': return <AlertTriangle className="h-4 w-4 text-red-600" />;
+                          case 'downloaded_attachment': return <Download className="h-4 w-4 text-purple-600" />;
+                          default: return <Mail className="h-4 w-4 text-green-600" />;
+                        }
+                      };
+                      
+                      const getActivityColor = (type: string) => {
+                        switch (type) {
+                          case 'opened_email': return 'bg-blue-50 border-blue-400';
+                          case 'clicked_link': return 'bg-yellow-50 border-yellow-400';
+                          case 'entered_credentials': return 'bg-red-50 border-red-400';
+                          case 'downloaded_attachment': return 'bg-purple-50 border-purple-400';
+                          default: return 'bg-green-50 border-green-400';
+                        }
+                      };
+                      
+                      return (
+                        <div key={activity.id} className={`flex items-center space-x-3 p-3 rounded-lg border-l-4 ${getActivityColor(activity.type)}`}>
+                          {getActivityIcon(activity.type)}
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">
+                              {activity.email} {activity.action}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              {activity.department} • {new Date(activity.timestamp).toLocaleTimeString()}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -484,27 +664,37 @@ const CampaignExecution = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[
-                    { dept: "Marketing", total: 45, vulnerable: 12, rate: 27 },
-                    { dept: "HR", total: 23, vulnerable: 8, rate: 35 },
-                    { dept: "Finance", total: 32, vulnerable: 6, rate: 19 },
-                    { dept: "IT", total: 28, vulnerable: 3, rate: 11 },
-                    { dept: "Sales", total: 22, vulnerable: 7, rate: 32 }
-                  ].map((dept, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-medium">{dept.dept}</h3>
-                          <span className="text-sm text-gray-600">{dept.vulnerable}/{dept.total} employees affected</span>
-                        </div>
-                        <Progress value={dept.rate} className="h-2" />
-                      </div>
-                      <div className="ml-4 text-right">
-                        <p className="text-lg font-bold text-red-600">{dept.rate}%</p>
-                        <p className="text-xs text-gray-600">vulnerability rate</p>
-                      </div>
+                  {departmentAnalysis.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <TrendingUp className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p className="text-lg font-medium">No department data available</p>
+                      <p className="text-sm">Employee activity will generate department statistics</p>
                     </div>
-                  ))}
+                  ) : (
+                    departmentAnalysis.map((dept, index) => (
+                      <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-medium">{dept.dept}</h3>
+                            <span className="text-sm text-gray-600">
+                              {dept.vulnerable}/{dept.total} employees affected
+                            </span>
+                          </div>
+                          <Progress value={dept.rate} className="h-2" />
+                        </div>
+                        <div className="ml-4 text-right">
+                          <p className={`text-lg font-bold ${
+                            dept.rate >= 30 ? 'text-red-600' : 
+                            dept.rate >= 15 ? 'text-yellow-600' : 
+                            'text-green-600'
+                          }`}>
+                            {dept.rate}%
+                          </p>
+                          <p className="text-xs text-gray-600">vulnerability rate</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>

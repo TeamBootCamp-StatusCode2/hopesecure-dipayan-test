@@ -15,6 +15,7 @@ import EmployeeManagement from "./pages/EmployeeManagement";
 import AdvancedReports from "./pages/AdvancedReports";
 import SettingsPage from "./pages/SettingsPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import AdminMonitoringDashboard from "./components/AdminMonitoringDashboard";
 import NotFound from "./pages/NotFound";
 import Signin from "./pages/signin"; 
 import Signup from "./pages/signup";

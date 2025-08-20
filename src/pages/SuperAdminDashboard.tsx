@@ -9,10 +9,13 @@ import {
   Eye,
   Settings,
   BarChart3,
-  AlertTriangle
+  AlertTriangle,
+  Database,
+  Monitor
 } from "lucide-react";
 import { apiClient } from '@/lib/api';
 import LogoutButton from '@/components/LogoutButton';
+import AdminMonitoringDashboard from '@/components/AdminMonitoringDashboard';
 
 interface SystemStats {
   total_organizations: number;
@@ -43,7 +46,7 @@ const SuperAdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'organizations' | 'users' | 'system'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'organizations' | 'users' | 'system' | 'monitoring'>('overview');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -104,6 +107,7 @@ const SuperAdminDashboard: React.FC = () => {
             { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'organizations', label: 'Organizations', icon: Building2 },
             { id: 'users', label: 'Users', icon: Users },
+            { id: 'monitoring', label: 'Monitoring', icon: Monitor },
             { id: 'system', label: 'System', icon: Settings }
           ].map((tab) => (
             <button
@@ -338,6 +342,13 @@ const SuperAdminDashboard: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {/* Monitoring Tab */}
+        {activeTab === 'monitoring' && (
+          <div className="space-y-6">
+            <AdminMonitoringDashboard />
           </div>
         )}
       </div>

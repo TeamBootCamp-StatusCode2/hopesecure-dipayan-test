@@ -15,32 +15,70 @@ import {
   Settings,
   Mail,
   Award,
-  TrendingUp
+  TrendingUp,
+  Pencil,
+  CheckCircle,
+  Eye,
+  Trash2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useCampaigns } from "@/hooks/useCampaigns";
+import CampaignNotification from "@/components/CampaignNotification";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [recentCampaigns, setRecentCampaigns] = useState([]);
+  const [draftCampaigns, setDraftCampaigns] = useState([]);
+  const [publishedCampaigns, setPublishedCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showCampaignNotification, setShowCampaignNotification] = useState(false);
+  const { campaigns, hasActiveCampaigns, hasAnyCampaigns, loading: campaignsLoading } = useCampaigns();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // This would fetch real campaign data from API
-        // const campaignData = await apiClient.getCampaigns();
-        // setRecentCampaigns(campaignData.slice(0, 3)); // Get most recent 3
-        setRecentCampaigns([]); // Start with empty array - no mock data
+        // Set recent campaigns from the campaigns hook
+        setRecentCampaigns(campaigns.slice(0, 3)); // Get most recent 3
+        
+        // Get campaigns from localStorage
+        const storedCampaigns = JSON.parse(localStorage.getItem('hopesecure_campaigns') || '[]');
+        
+        // Filter draft campaigns
+        const drafts = storedCampaigns.filter(campaign => campaign.status === 'draft');
+        setDraftCampaigns(drafts.slice(0, 3)); // Get most recent 3 drafts
+        
+        // Filter published campaigns (scheduled, active, completed)
+        const published = storedCampaigns.filter(campaign => 
+          campaign.status === 'scheduled' || 
+          campaign.status === 'active' || 
+          campaign.status === 'completed'
+        );
+        setPublishedCampaigns(published.slice(0, 3)); // Get most recent 3 published
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
         setRecentCampaigns([]);
+        setDraftCampaigns([]);
+        setPublishedCampaigns([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDashboardData();
-  }, []);
+    if (!campaignsLoading) {
+      fetchDashboardData();
+    }
+  }, [campaigns, campaignsLoading]);
+
+  const handleCampaignMonitorClick = () => {
+    // Check if user has any campaigns
+    if (!hasAnyCampaigns) {
+      setShowCampaignNotification(true);
+      return;
+    }
+    
+    // If campaigns exist, navigate to campaign monitor
+    navigate('/campaign/execute');
+  };
 
   const [stats, setStats] = useState([
     {
@@ -72,6 +110,47 @@ const Dashboard = () => {
       color: "text-security-green"
     }
   ]);
+
+  // Update stats when campaigns data changes
+  useEffect(() => {
+    if (!campaignsLoading && campaigns.length > 0) {
+      const totalClicks = campaigns.reduce((sum, campaign) => sum + (campaign.links_clicked || 0), 0);
+      const totalSent = campaigns.reduce((sum, campaign) => sum + (campaign.emails_sent || 0), 0);
+      const totalSubmissions = campaigns.reduce((sum, campaign) => sum + (campaign.credentials_submitted || 0), 0);
+      const clickRate = totalSent > 0 ? ((totalClicks / totalSent) * 100).toFixed(1) : "0";
+
+      setStats([
+        {
+          title: "Total Campaigns",
+          value: campaigns.length.toString(),
+          change: hasActiveCampaigns ? "Active campaigns running" : "No active campaigns",
+          icon: Target,
+          color: "text-security-blue"
+        },
+        {
+          title: "Employees Tested",
+          value: totalSent.toString(),
+          change: totalSent > 0 ? "Emails sent" : "No tests sent", 
+          icon: Users,
+          color: "text-security-green"
+        },
+        {
+          title: "Risk Score",
+          value: totalSubmissions > 0 ? "High" : "Low",
+          change: `${totalSubmissions} submissions`,
+          icon: Shield,
+          color: totalSubmissions > 0 ? "text-red-600" : "text-green-600"
+        },
+        {
+          title: "Avg Click Rate",
+          value: `${clickRate}%`,
+          change: totalClicks > 0 ? `${totalClicks} clicks` : "No clicks",
+          icon: BarChart3,
+          color: "text-security-green"
+        }
+      ]);
+    }
+  }, [campaigns, campaignsLoading, hasActiveCampaigns]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -187,6 +266,254 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
+        {/* Draft Campaigns */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-orange-600" />
+                  Draft Campaigns
+                </CardTitle>
+                <CardDescription>Manage your saved draft campaigns</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => navigate('/campaign/create')}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Draft
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {draftCampaigns.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>No draft campaigns found</p>
+                <p className="text-sm">Create a campaign and save as draft to see it here</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {draftCampaigns.map((campaign) => (
+                  <div key={campaign.id} className="border border-border rounded-lg p-4 hover:shadow-sm transition-smooth">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <h3 className="font-semibold text-foreground">{campaign.name}</h3>
+                        <Badge className="bg-orange-100 text-orange-800 border-orange-200">
+                          Draft
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate('/campaign/create', { state: { editCampaign: campaign } })}
+                        >
+                          <Pencil className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // Convert draft to active campaign
+                            const updatedCampaign = { ...campaign, status: 'scheduled' };
+                            const storedCampaigns = JSON.parse(localStorage.getItem('hopesecure_campaigns') || '[]');
+                            const updatedCampaigns = storedCampaigns.map(c => c.id === campaign.id ? updatedCampaign : c);
+                            localStorage.setItem('hopesecure_campaigns', JSON.stringify(updatedCampaigns));
+                            setDraftCampaigns(prev => prev.filter(c => c.id !== campaign.id));
+                            alert('Draft campaign launched successfully!');
+                          }}
+                        >
+                          <Target className="h-4 w-4 mr-1" />
+                          Launch
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm('Are you sure you want to delete this draft campaign?')) {
+                              // Delete draft campaign
+                              const storedCampaigns = JSON.parse(localStorage.getItem('hopesecure_campaigns') || '[]');
+                              const updatedCampaigns = storedCampaigns.filter(c => c.id !== campaign.id);
+                              localStorage.setItem('hopesecure_campaigns', JSON.stringify(updatedCampaigns));
+                              setDraftCampaigns(prev => prev.filter(c => c.id !== campaign.id));
+                              alert('Draft campaign deleted successfully!');
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-700 hover:border-red-300"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Campaign Type</p>
+                        <p className="font-semibold text-foreground">{campaign.campaign_type}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Target Emails</p>
+                        <p className="font-semibold text-security-blue">{campaign.target_emails?.length || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Created</p>
+                        <p className="font-semibold text-muted-foreground">
+                          {campaign.created_at ? new Date(campaign.created_at).toLocaleDateString() : 'Unknown'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {campaign.description && (
+                      <div className="mt-3 pt-3 border-t">
+                        <p className="text-sm text-muted-foreground">{campaign.description}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Published Campaigns */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  Published Campaigns
+                </CardTitle>
+                <CardDescription>Track your active and completed campaigns</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => {
+                const firstCampaign = publishedCampaigns[0];
+                navigate('/campaign/execute', firstCampaign ? { state: { campaign: firstCampaign } } : {});
+              }}>
+                <Eye className="h-4 w-4 mr-2" />
+                View All
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {publishedCampaigns.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <CheckCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>No published campaigns found</p>
+                <p className="text-sm">Launch a campaign to see it here</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {publishedCampaigns.map((campaign) => (
+                  <div key={campaign.id} className="border border-border rounded-lg p-4 hover:shadow-sm transition-smooth">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <h3 className="font-semibold text-foreground">{campaign.name}</h3>
+                        <Badge className={`${
+                          campaign.status === 'active' ? 'bg-green-100 text-green-800 border-green-200' :
+                          campaign.status === 'scheduled' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                          campaign.status === 'completed' ? 'bg-gray-100 text-gray-800 border-gray-200' :
+                          'bg-orange-100 text-orange-800 border-orange-200'
+                        }`}>
+                          {campaign.status === 'active' ? 'Active' :
+                           campaign.status === 'scheduled' ? 'Scheduled' :
+                           campaign.status === 'completed' ? 'Completed' : campaign.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate('/campaign/execute', { state: { campaign } })}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate('/campaign/create', { state: { editCampaign: campaign } })}
+                        >
+                          <Pencil className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                        {campaign.status === 'scheduled' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              // Start the campaign
+                              const updatedCampaign = { ...campaign, status: 'active' };
+                              const storedCampaigns = JSON.parse(localStorage.getItem('hopesecure_campaigns') || '[]');
+                              const updatedCampaigns = storedCampaigns.map(c => c.id === campaign.id ? updatedCampaign : c);
+                              localStorage.setItem('hopesecure_campaigns', JSON.stringify(updatedCampaigns));
+                              setPublishedCampaigns(prev => prev.map(c => c.id === campaign.id ? updatedCampaign : c));
+                              alert('Campaign started successfully!');
+                            }}
+                          >
+                            <Target className="h-4 w-4 mr-1" />
+                            Start
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm('Are you sure you want to delete this campaign? This action cannot be undone.')) {
+                              // Delete published campaign
+                              const storedCampaigns = JSON.parse(localStorage.getItem('hopesecure_campaigns') || '[]');
+                              const updatedCampaigns = storedCampaigns.filter(c => c.id !== campaign.id);
+                              localStorage.setItem('hopesecure_campaigns', JSON.stringify(updatedCampaigns));
+                              setPublishedCampaigns(prev => prev.filter(c => c.id !== campaign.id));
+                              alert('Campaign deleted successfully!');
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-700 hover:border-red-300"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Campaign Type</p>
+                        <p className="font-semibold text-foreground">{campaign.campaign_type}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Target Emails</p>
+                        <p className="font-semibold text-security-blue">{campaign.target_emails?.length || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Status</p>
+                        <p className="font-semibold text-green-600">
+                          {campaign.status === 'active' ? 'Running' :
+                           campaign.status === 'scheduled' ? 'Pending' :
+                           campaign.status === 'completed' ? 'Finished' : 'Unknown'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Schedule Date</p>
+                        <p className="font-semibold text-muted-foreground">
+                          {campaign.scheduled_date ? new Date(campaign.scheduled_date).toLocaleDateString() : 'Not set'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {campaign.description && (
+                      <div className="mt-3 pt-3 border-t">
+                        <p className="text-sm text-muted-foreground">{campaign.description}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Quick Actions */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <Card className="border border-border hover:shadow-card transition-smooth cursor-pointer" onClick={() => navigate('/campaign/create')}>
@@ -221,7 +548,7 @@ const Dashboard = () => {
             </CardHeader>
           </Card>
 
-          <Card className="border border-border hover:shadow-card transition-smooth cursor-pointer" onClick={() => navigate('/campaign/execute')}>
+          <Card className="border border-border hover:shadow-card transition-smooth cursor-pointer" onClick={handleCampaignMonitorClick}>
             <CardHeader className="text-center">
               <Target className="h-12 w-12 text-orange-600 mx-auto mb-4" />
               <CardTitle>Campaign Monitor</CardTitle>
@@ -238,6 +565,11 @@ const Dashboard = () => {
           </Card>
         </div>
       </div>
+
+      {/* Campaign Notification Modal */}
+      {showCampaignNotification && (
+        <CampaignNotification onClose={() => setShowCampaignNotification(false)} />
+      )}
     </div>
   );
 };

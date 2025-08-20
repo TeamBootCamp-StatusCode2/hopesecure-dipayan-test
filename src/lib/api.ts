@@ -393,6 +393,71 @@ class APIClient {
     return data.results || data; // Return the results array, or data if it's already an array
   }
 
+  // Admin monitoring endpoints
+  async getActivityLogs(filters: {
+    days?: number;
+    severity?: string;
+    action_type?: string;
+    page_size?: number;
+  } = {}) {
+    const params = new URLSearchParams();
+    if (filters.days) params.append('days', filters.days.toString());
+    if (filters.severity) params.append('severity', filters.severity);
+    if (filters.action_type) params.append('action_type', filters.action_type);
+    if (filters.page_size) params.append('page_size', filters.page_size.toString());
+
+    const response = await fetch(`${API_BASE_URL}/auth/admin/logs/?${params}`, {
+      headers: { 
+        "Authorization": `Token ${this.token}`
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch activity logs: ${response.status}`);
+    }
+    
+    return await response.json();
+  }
+
+  async getSystemAlerts(filters: {
+    status?: string;
+    severity?: string;
+    alert_type?: string;
+    page_size?: number;
+  } = {}) {
+    const params = new URLSearchParams();
+    if (filters.status) params.append('status', filters.status);
+    if (filters.severity) params.append('severity', filters.severity);
+    if (filters.alert_type) params.append('alert_type', filters.alert_type);
+    if (filters.page_size) params.append('page_size', filters.page_size.toString());
+
+    const response = await fetch(`${API_BASE_URL}/auth/admin/alerts/?${params}`, {
+      headers: { 
+        "Authorization": `Token ${this.token}`
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch system alerts: ${response.status}`);
+    }
+    
+    return await response.json();
+  }
+
+  async getAdminDashboardOverview() {
+    const response = await fetch(`${API_BASE_URL}/auth/admin/overview/`, {
+      headers: { 
+        "Authorization": `Token ${this.token}`
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch admin dashboard overview: ${response.status}`);
+    }
+    
+    return await response.json();
+  }
+
   getToken() {
     return this.token;
   }
