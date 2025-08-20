@@ -20,14 +20,19 @@ import {
   CheckCircle,
   Eye,
   Trash2,
-  Home
+  Home,
+  RotateCcw,
+  Square,
+  Crown
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import CampaignNotification from "@/components/CampaignNotification";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [recentCampaigns, setRecentCampaigns] = useState([]);
   const [draftCampaigns, setDraftCampaigns] = useState([]);
   const [publishedCampaigns, setPublishedCampaigns] = useState([]);
@@ -182,6 +187,17 @@ const Dashboard = () => {
                 <Home className="h-5 w-5 mr-2" />
                 Home
               </Button>
+              {user?.is_superuser && (
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="w-fit bg-yellow-500/20 text-yellow-100 border-yellow-400/30 hover:bg-yellow-500/30"
+                  onClick={() => navigate('/superadmin')}
+                >
+                  <Crown className="h-5 w-5 mr-2" />
+                  Super Admin Panel
+                </Button>
+              )}
               <Button 
                 variant="accent" 
                 size="lg" 
@@ -225,56 +241,83 @@ const Dashboard = () => {
                 <CardTitle className="text-xl">Recent Campaigns</CardTitle>
                 <CardDescription>Track the performance of your latest security tests</CardDescription>
               </div>
-              <Button variant="outline" onClick={() => navigate('/campaigns')}>
-                View All
-                <ChevronRight className="h-4 w-4 ml-2" />
+              <Button variant="outline" onClick={() => {
+                if (recentCampaigns.length === 0) {
+                  // No recent campaigns, redirect to create campaign
+                  navigate('/campaign/create');
+                } else {
+                  // Has campaigns, go to campaigns list (or use existing route)
+                  navigate('/campaigns');
+                }
+              }}>
+                {recentCampaigns.length === 0 ? (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Campaign
+                  </>
+                ) : (
+                  <>
+                    View All
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </>
+                )}
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentCampaigns.map((campaign) => (
-                <div key={campaign.id} className="border border-border rounded-lg p-4 hover:shadow-sm transition-smooth">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-semibold text-foreground">{campaign.name}</h3>
-                      <Badge className={`${getStatusColor(campaign.status)} text-white`}>
-                        {campaign.status}
-                      </Badge>
+            {recentCampaigns.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p className="mb-4">No recent campaigns yet.</p>
+                <Button onClick={() => navigate('/campaign/create')} className="bg-security-blue hover:bg-security-blue/90">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Campaign
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {recentCampaigns.map((campaign) => (
+                  <div key={campaign.id} className="border border-border rounded-lg p-4 hover:shadow-sm transition-smooth">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <h3 className="font-semibold text-foreground">{campaign.name}</h3>
+                        <Badge className={`${getStatusColor(campaign.status)} text-white`}>
+                          {campaign.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        {campaign.date}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      {campaign.date}
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Targets</p>
+                        <p className="font-semibold text-foreground">{campaign.targets}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Opened</p>
+                        <p className="font-semibold text-security-blue">
+                          {campaign.opened} ({campaign.targets > 0 ? Math.round((campaign.opened / campaign.targets) * 100) : 0}%)
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Clicked</p>
+                        <p className="font-semibold text-yellow-600">
+                          {campaign.clicked} ({campaign.targets > 0 ? Math.round((campaign.clicked / campaign.targets) * 100) : 0}%)
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Submitted</p>
+                        <p className="font-semibold text-red-600">
+                          {campaign.submitted} ({campaign.targets > 0 ? Math.round((campaign.submitted / campaign.targets) * 100) : 0}%)
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Targets</p>
-                      <p className="font-semibold text-foreground">{campaign.targets}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Opened</p>
-                      <p className="font-semibold text-security-blue">
-                        {campaign.opened} ({campaign.targets > 0 ? Math.round((campaign.opened / campaign.targets) * 100) : 0}%)
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Clicked</p>
-                      <p className="font-semibold text-yellow-600">
-                        {campaign.clicked} ({campaign.targets > 0 ? Math.round((campaign.clicked / campaign.targets) * 100) : 0}%)
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Submitted</p>
-                      <p className="font-semibold text-red-600">
-                        {campaign.submitted} ({campaign.targets > 0 ? Math.round((campaign.submitted / campaign.targets) * 100) : 0}%)
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -400,11 +443,21 @@ const Dashboard = () => {
                 <CardDescription>Track your active and completed campaigns</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => {
-                const firstCampaign = publishedCampaigns[0];
-                navigate('/campaign/execute', firstCampaign ? { state: { campaign: firstCampaign } } : {});
+                if (publishedCampaigns.length === 0) {
+                  // No published campaigns, redirect to create campaign
+                  navigate('/campaign/create');
+                } else {
+                  // Has campaigns, go to campaign execution/monitoring
+                  const firstCampaign = publishedCampaigns[0];
+                  navigate('/campaign/execute', { state: { campaign: firstCampaign } });
+                }
               }}>
-                <Eye className="h-4 w-4 mr-2" />
-                View All
+                {publishedCampaigns.length === 0 ? (
+                  <Plus className="h-4 w-4 mr-2" />
+                ) : (
+                  <Eye className="h-4 w-4 mr-2" />
+                )}
+                {publishedCampaigns.length === 0 ? 'Create Campaign' : 'View All'}
               </Button>
             </div>
           </CardHeader>
@@ -466,6 +519,79 @@ const Dashboard = () => {
                           >
                             <Target className="h-4 w-4 mr-1" />
                             Start
+                          </Button>
+                        )}
+                        {campaign.status === 'active' && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to stop this campaign?')) {
+                                  // Stop the campaign
+                                  const updatedCampaign = { ...campaign, status: 'completed' };
+                                  const storedCampaigns = JSON.parse(localStorage.getItem('hopesecure_campaigns') || '[]');
+                                  const updatedCampaigns = storedCampaigns.map(c => c.id === campaign.id ? updatedCampaign : c);
+                                  localStorage.setItem('hopesecure_campaigns', JSON.stringify(updatedCampaigns));
+                                  setPublishedCampaigns(prev => prev.map(c => c.id === campaign.id ? updatedCampaign : c));
+                                  alert('Campaign stopped successfully!');
+                                }
+                              }}
+                              className="text-orange-600 hover:text-orange-700 hover:border-orange-300"
+                            >
+                              <Square className="h-4 w-4 mr-1" />
+                              Stop
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to restart this campaign? This will reset its progress.')) {
+                                  // Restart the campaign
+                                  const updatedCampaign = { 
+                                    ...campaign, 
+                                    status: 'active',
+                                    start_date: new Date().toISOString(),
+                                    // Reset any progress metrics if needed
+                                  };
+                                  const storedCampaigns = JSON.parse(localStorage.getItem('hopesecure_campaigns') || '[]');
+                                  const updatedCampaigns = storedCampaigns.map(c => c.id === campaign.id ? updatedCampaign : c);
+                                  localStorage.setItem('hopesecure_campaigns', JSON.stringify(updatedCampaigns));
+                                  setPublishedCampaigns(prev => prev.map(c => c.id === campaign.id ? updatedCampaign : c));
+                                  alert('Campaign restarted successfully!');
+                                }
+                              }}
+                              className="text-blue-600 hover:text-blue-700 hover:border-blue-300"
+                            >
+                              <RotateCcw className="h-4 w-4 mr-1" />
+                              Restart
+                            </Button>
+                          </>
+                        )}
+                        {campaign.status === 'completed' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (confirm('Are you sure you want to restart this completed campaign?')) {
+                                // Restart completed campaign
+                                const updatedCampaign = { 
+                                  ...campaign, 
+                                  status: 'active',
+                                  start_date: new Date().toISOString(),
+                                  // Reset any progress metrics if needed
+                                };
+                                const storedCampaigns = JSON.parse(localStorage.getItem('hopesecure_campaigns') || '[]');
+                                const updatedCampaigns = storedCampaigns.map(c => c.id === campaign.id ? updatedCampaign : c);
+                                localStorage.setItem('hopesecure_campaigns', JSON.stringify(updatedCampaigns));
+                                setPublishedCampaigns(prev => prev.map(c => c.id === campaign.id ? updatedCampaign : c));
+                                alert('Campaign restarted successfully!');
+                              }
+                            }}
+                            className="text-blue-600 hover:text-blue-700 hover:border-blue-300"
+                          >
+                            <RotateCcw className="h-4 w-4 mr-1" />
+                            Restart
                           </Button>
                         )}
                         <Button

@@ -9,6 +9,13 @@ interface SuperAdminRouteProps {
 const SuperAdminRoute: React.FC<SuperAdminRouteProps> = ({ children }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
 
+  console.log('🔍 SuperAdminRoute Debug:', {
+    isAuthenticated,
+    isLoading,
+    user,
+    is_superuser: user?.is_superuser
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -21,14 +28,17 @@ const SuperAdminRoute: React.FC<SuperAdminRouteProps> = ({ children }) => {
   }
 
   if (!isAuthenticated) {
+    console.log('❌ Not authenticated, redirecting to signin');
     return <Navigate to="/signin" replace />;
   }
 
   // Check if user is super admin
-  if (user?.role !== 'super_admin') {
+  if (!user?.is_superuser) {
+    console.log('❌ Not super admin, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
 
+  console.log('✅ Super admin access granted');
   return <>{children}</>;
 };
 

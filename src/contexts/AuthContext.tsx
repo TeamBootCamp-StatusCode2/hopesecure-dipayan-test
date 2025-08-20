@@ -70,8 +70,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string): Promise<void> => {
     try {
       const response = await apiClient.login(email, password);
+      console.log('🔍 Login Response:', response);
+      console.log('🔍 User is_superuser:', response.user.is_superuser);
+      console.log('🔍 Redirect URL:', response.redirect_url);
+      
       setUser(response.user);
       setUserData(response.user);
+      
+      // Redirect based on user role
+      if (response.redirect_url) {
+        console.log('🚀 Redirecting to:', response.redirect_url);
+        window.location.href = response.redirect_url;
+      } else {
+        // Fallback logic
+        const redirectUrl = response.user.is_superuser ? '/superadmin' : '/dashboard';
+        console.log('🚀 Fallback redirect to:', redirectUrl);
+        window.location.href = redirectUrl;
+      }
     } catch (error) {
       console.error('Login failed:', error);
       throw error;

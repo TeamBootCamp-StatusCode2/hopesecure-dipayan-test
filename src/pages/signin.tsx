@@ -22,16 +22,8 @@ const SignIn = () => {
 
     try {
       await login(email, password);
-      
-      // Get user info to check role
-      const userResponse = await apiClient.getProfile();
-      
-      // Redirect based on user role
-      if (userResponse.role === 'super_admin') {
-        navigate('/superadmin', { replace: true });
-      } else {
-        navigate(from, { replace: true });
-      }
+      // AuthContext will handle the redirect automatically
+      // No need for manual redirect logic here
     } catch (err: unknown) {
       const error = err as Error;
       setError(error.message || "Login failed. Please check your credentials.");

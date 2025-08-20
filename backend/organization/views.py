@@ -12,7 +12,7 @@ def get_company_info(request):
     """Get company information for authenticated user"""
     try:
         # Super admin can see all companies
-        if request.user.is_super_admin:
+        if request.user.is_superuser:
             companies = Company.get_all_companies()
             serializer = CompanySerializer(companies, many=True, context={'request': request})
             return Response({
@@ -104,7 +104,7 @@ def upload_company_logo(request):
 @permission_classes([IsAuthenticated])
 def get_all_organizations(request):
     """Super admin endpoint to get all organizations"""
-    if not request.user.is_super_admin:
+    if not request.user.is_superuser:
         return Response(
             {'error': 'Access denied. Super admin privileges required.'}, 
             status=status.HTTP_403_FORBIDDEN
@@ -143,7 +143,7 @@ def get_all_organizations(request):
 @permission_classes([IsAuthenticated])
 def get_system_stats(request):
     """Super admin endpoint to get system-wide statistics"""
-    if not request.user.is_super_admin:
+    if not request.user.is_superuser:
         return Response(
             {'error': 'Access denied. Super admin privileges required.'}, 
             status=status.HTTP_403_FORBIDDEN
@@ -163,8 +163,8 @@ def get_system_stats(request):
             'total_employees': Employee.objects.count(),
             'total_campaigns': Campaign.objects.count(),
             'total_templates': Template.objects.count(),
-            'super_admins': User.objects.filter(role='super_admin').count(),
-            'org_admins': User.objects.filter(role='admin').count(),
+            'super_admins': User.objects.filter(is_superuser=True).count(),
+            'org_admins': User.objects.filter(is_staff=True, is_superuser=False).count(),
             'active_organizations': Company.objects.filter(users__isnull=False).distinct().count(),
         }
         

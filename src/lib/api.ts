@@ -10,6 +10,7 @@ export interface User {
   department: string;
   phone_number: string;
   is_email_verified: boolean;
+  is_superuser: boolean;
   created_at: string;
 }
 

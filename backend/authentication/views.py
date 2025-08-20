@@ -49,9 +49,13 @@ class LoginView(generics.GenericAPIView):
         # Get or create authentication token
         token, created = Token.objects.get_or_create(user=user)
         
+        # Determine redirect URL based on user role
+        redirect_url = '/superadmin' if user.is_superuser else '/dashboard'
+        
         return Response({
             'user': UserSerializer(user).data,
             'token': token.key,
+            'redirect_url': redirect_url,
             'message': 'Login successful'
         }, status=status.HTTP_200_OK)
 
@@ -160,7 +164,7 @@ def activity_logs(request):
     user = request.user
     
     # Only allow admins and super admins to view logs
-    if user.role not in ['admin', 'super_admin']:
+    if not (user.is_staff or user.is_superuser):
         return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
     
     # Get filter parameters
@@ -173,9 +177,13 @@ def activity_logs(request):
     logs = ActivityLog.objects.all()
     
     # Apply filters
-    if user.role != 'super_admin' and user.organization:
+    if not user.is_superuser:
         # Regular admins only see their organization's logs
-        logs = logs.filter(organization=user.organization)
+        if hasattr(user, 'organization') and user.organization:
+            logs = logs.filter(organization=user.organization)
+        else:
+            # If user has no organization, return empty logs
+            logs = logs.none()
     
     # Time filter
     start_date = timezone.now() - timedelta(days=days)
@@ -237,7 +245,7 @@ def system_alerts(request):
     user = request.user
     
     # Only allow admins and super admins to view alerts
-    if user.role not in ['admin', 'super_admin']:
+    if not (user.is_staff or user.is_superuser):
         return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
     
     # Get filter parameters
@@ -250,9 +258,13 @@ def system_alerts(request):
     alerts = SystemAlert.objects.all()
     
     # Apply filters
-    if user.role != 'super_admin' and user.organization:
+    if not user.is_superuser:
         # Regular admins only see their organization's alerts
-        alerts = alerts.filter(Q(organization=user.organization) | Q(organization__isnull=True))
+        if hasattr(user, 'organization') and user.organization:
+            alerts = alerts.filter(Q(organization=user.organization) | Q(organization__isnull=True))
+        else:
+            # If user has no organization, show only system-wide alerts
+            alerts = alerts.filter(organization__isnull=True)
     
     # Status filter
     if status_filter:
@@ -315,7 +327,7 @@ def admin_dashboard_overview(request):
     user = request.user
     
     # Only allow admins and super admins
-    if user.role not in ['admin', 'super_admin']:
+    if not (user.is_staff or user.is_superuser):
         return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
     
     # Time ranges
@@ -328,9 +340,14 @@ def admin_dashboard_overview(request):
     logs_qs = ActivityLog.objects.all()
     alerts_qs = SystemAlert.objects.all()
     
-    if user.role != 'super_admin' and user.organization:
-        logs_qs = logs_qs.filter(organization=user.organization)
-        alerts_qs = alerts_qs.filter(Q(organization=user.organization) | Q(organization__isnull=True))
+    if not user.is_superuser:
+        if hasattr(user, 'organization') and user.organization:
+            logs_qs = logs_qs.filter(organization=user.organization)
+            alerts_qs = alerts_qs.filter(Q(organization=user.organization) | Q(organization__isnull=True))
+        else:
+            # If user has no organization, return empty querysets or system-wide only
+            logs_qs = logs_qs.none()
+            alerts_qs = alerts_qs.filter(organization__isnull=True)
     
     # Activity statistics
     activity_stats = {

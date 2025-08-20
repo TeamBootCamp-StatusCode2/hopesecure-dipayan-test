@@ -11,6 +11,15 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # python-dotenv is optional, will use system environment variables
+    pass
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -82,24 +91,32 @@ WSGI_APPLICATION = 'hopesecure_backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# Environment-based database configuration
+# Set USE_POSTGRES=True environment variable to use PostgreSQL
+# Otherwise, SQLite will be used (good for team members)
 
-# For production, use PostgreSQL:
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'hopesecure',
-#         'USER': 'postgres', 
-#         'PASSWORD': 'speed123',
-#         'HOST': 'localhost',
-#         'PORT': '5432',
-#     }
-# }
+if os.environ.get('USE_POSTGRES', 'False').lower() == 'true':
+    # PostgreSQL Configuration (for production/your use)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME', 'hopesecure-statuscode'),
+            'USER': os.environ.get('DB_USER', 'postgres'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', 'speed123'),
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+        }
+    }
+    print("🐘 Using PostgreSQL Database")
+else:
+    # SQLite Configuration (for development/team members)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+    print("🗃️  Using SQLite Database")
 
 
 # Password validation
