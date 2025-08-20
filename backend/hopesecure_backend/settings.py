@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
@@ -86,6 +87,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'hopesecure_backend.wsgi.application'
+ASGI_APPLICATION = 'hopesecure_backend.asgi.application'
+
+# Channels Configuration
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 
 # Database
