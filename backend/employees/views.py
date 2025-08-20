@@ -11,19 +11,29 @@ from .serializers import (
 
 class EmployeeListCreateView(generics.ListCreateAPIView):
     """List all employees or create a new employee"""
-    queryset = Employee.objects.all()
-    permission_classes = []  # Temporarily allow unauthenticated access for testing
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        # Only show employees created by the current user
+        return Employee.objects.filter(created_by=self.request.user)
     
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return EmployeeCreateSerializer
         return EmployeeListSerializer
+    
+    def perform_create(self, serializer):
+        # Set the created_by to the current user
+        serializer.save(created_by=self.request.user)
 
 
 class EmployeeDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Retrieve, update or delete an employee"""
-    queryset = Employee.objects.all()
     permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        # Only allow access to employees created by the current user
+        return Employee.objects.filter(created_by=self.request.user)
     
     def get_serializer_class(self):
         if self.request.method in ['PUT', 'PATCH']:
@@ -33,16 +43,23 @@ class EmployeeDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class DepartmentListCreateView(generics.ListCreateAPIView):
     """List all departments or create a new department"""
-    queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
-    permission_classes = []  # Temporarily allow unauthenticated access for testing
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        # Only show departments created by the current user
+        return Department.objects.filter(created_by=self.request.user)
+    
+    def perform_create(self, serializer):
+        # Set the created_by to the current user
+        serializer.save(created_by=self.request.user)
 
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def employee_stats(request):
-    """Get employee statistics"""
-    employees = Employee.objects.filter(is_active=True)
+    """Get employee statistics for the current user"""
+    employees = Employee.objects.filter(created_by=request.user, is_active=True)
     
     stats = {
         'total_employees': employees.count(),
@@ -53,7 +70,7 @@ def employee_stats(request):
         'average_susceptibility_score': employees.aggregate(
             avg_score=Avg('phishing_susceptibility_score')
         )['avg_score'] or 0,
-        'departments': Department.objects.all(),
+        'departments': Department.objects.filter(created_by=request.user),
         'recent_hires': employees.order_by('-hire_date')[:5]
     }
     

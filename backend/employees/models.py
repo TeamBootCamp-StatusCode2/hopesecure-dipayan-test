@@ -6,10 +6,15 @@ User = get_user_model()
 
 class Department(models.Model):
     """Organization departments"""
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_departments')
+    organization = models.ForeignKey('organization.Company', on_delete=models.CASCADE, related_name='departments', null=True, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_departments', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('name', 'organization')  # Allow same department name for different organizations
     
     def __str__(self):
         return self.name
@@ -25,10 +30,10 @@ class Employee(models.Model):
     ]
     
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employee_profile', null=True, blank=True)
-    employee_id = models.CharField(max_length=50, unique=True)
+    employee_id = models.CharField(max_length=50)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)
+    email = models.EmailField()
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='employees')
     position = models.CharField(max_length=100)
     manager_email = models.EmailField(blank=True)
@@ -36,6 +41,8 @@ class Employee(models.Model):
     office_location = models.CharField(max_length=100, blank=True)
     hire_date = models.DateField()
     is_active = models.BooleanField(default=True)
+    organization = models.ForeignKey('organization.Company', on_delete=models.CASCADE, related_name='organization_employees', null=True, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_employees', null=True, blank=True)
     
     # Security-related fields
     security_clearance_level = models.CharField(max_length=50, blank=True)
@@ -55,6 +62,10 @@ class Employee(models.Model):
     
     class Meta:
         ordering = ['last_name', 'first_name']
+        unique_together = [
+            ('employee_id', 'organization'),  # Allow same employee_id for different organizations
+            ('email', 'organization'),        # Allow same email for different organizations
+        ]
     
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.email})"

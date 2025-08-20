@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import SuperAdminRoute from "@/components/SuperAdminRoute";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import CreateCampaign from "./pages/CreateCampaign";
@@ -13,6 +14,7 @@ import TemplateManagement from "./pages/TemplateManagement";
 import EmployeeManagement from "./pages/EmployeeManagement";
 import AdvancedReports from "./pages/AdvancedReports";
 import SettingsPage from "./pages/SettingsPage";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import NotFound from "./pages/NotFound";
 import Signin from "./pages/signin"; 
 import Signup from "./pages/signup";
@@ -67,6 +69,13 @@ const App = () => (
               <ProtectedRoute>
                 <SettingsPage />
               </ProtectedRoute>
+            } />
+            
+            {/* Super Admin Route */}
+            <Route path="/superadmin" element={
+              <SuperAdminRoute>
+                <SuperAdminDashboard />
+              </SuperAdminRoute>
             } />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

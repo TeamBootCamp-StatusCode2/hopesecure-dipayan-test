@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardHeader from "@/components/DashboardHeader";
+import LogoutButton from "@/components/LogoutButton";
 import { 
   Users, 
   Bell, 
@@ -189,6 +190,7 @@ const SettingsPage = () => {
               <Download className="h-4 w-4 mr-2" />
               Export Config
             </Button>
+            <LogoutButton className="px-4 py-2 rounded-md border border-red-200 hover:bg-red-50 transition-colors bg-white" />
           </div>
         </div>
 

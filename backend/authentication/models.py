@@ -5,6 +5,7 @@ from django.db import models
 class User(AbstractUser):
     """Extended user model for the cybersecurity platform"""
     ROLE_CHOICES = [
+        ('super_admin', 'Super Administrator'),
         ('admin', 'Administrator'),
         ('manager', 'Security Manager'),
         ('analyst', 'Security Analyst'),
@@ -16,6 +17,7 @@ class User(AbstractUser):
     department = models.CharField(max_length=100, blank=True)
     phone_number = models.CharField(max_length=15, blank=True)
     is_email_verified = models.BooleanField(default=False)
+    organization = models.ForeignKey('organization.Company', on_delete=models.CASCADE, null=True, blank=True, related_name='users')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -28,6 +30,16 @@ class User(AbstractUser):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+    
+    @property
+    def is_super_admin(self):
+        """Check if user is a super administrator"""
+        return self.role == 'super_admin'
+    
+    @property
+    def is_org_admin(self):
+        """Check if user is an organization administrator"""
+        return self.role == 'admin'
 
 
 class UserProfile(models.Model):

@@ -69,56 +69,51 @@ class Company(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
-    # Make this a singleton - only one company record allowed
     class Meta:
         verbose_name = "Company"
-        verbose_name_plural = "Company"
+        verbose_name_plural = "Companies"
     
     def __str__(self):
-        return self.name
-    
-    def save(self, *args, **kwargs):
-        # Ensure only one company record exists - simple approach
-        if not self.pk:
-            # Check if a company already exists
-            existing = Company.objects.first()
-            if existing:
-                # Update the existing company instead of creating new one
-                self.pk = existing.pk
-        return super().save(*args, **kwargs)
+        return self.name or f"Company {self.id}"
     
     @classmethod
-    def get_instance(cls, user=None):
-        """Get the singleton company instance"""
-        if cls.objects.exists():
-            company = cls.objects.first()
-            # If no created_by user, set it
-            if not company.created_by and user:
-                company.created_by = user
-                company.save()
+    def get_user_company(cls, user):
+        """Get the user's organization company or all companies for super admin"""
+        try:
+            # Super admin can access all companies
+            if user.is_super_admin:
+                return cls.objects.all()
+            
+            # Return the user's organization if they have one
+            if user.organization:
+                return user.organization
+            
+            # If user doesn't have an organization, this shouldn't happen in the new system
+            # but we'll handle it gracefully by creating one
+            company = cls.objects.create(
+                name='',
+                domain='',
+                industry='technology',
+                employee_count='1-50',
+                address='',
+                phone='',
+                website='',
+                registration_number='',
+                founded_year='',
+                timezone='UTC+0',
+                language='en',
+                created_by=user
+            )
+            
+            # Link the user to this company
+            user.organization = company
+            user.save()
+            
             return company
-        
-        # Create new company instance
-        if not user:
-            # If no user provided, try to get the first user from database
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
-            user = User.objects.first()
-            if not user:
-                raise ValueError("No user available to create company")
-        
-        obj = cls.objects.create(
-            name='',
-            domain='',
-            industry='technology',
-            employee_count='1-50',
-            address='',
-            phone='',
-            website='',
-            registration_number='',
-            founded_year='',
-            timezone='UTC+0',
-            language='en',
-            created_by=user
-        )
-        return obj
+        except Exception as e:
+            raise Exception(f"Failed to get user company: {str(e)}")
+    
+    @classmethod
+    def get_all_companies(cls):
+        """Get all companies in the system - for super admin use"""
+        return cls.objects.all()

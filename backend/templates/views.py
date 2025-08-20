@@ -11,8 +11,7 @@ from .serializers import (
 
 class TemplateListCreateView(generics.ListCreateAPIView):
     """List all templates or create a new template"""
-    queryset = Template.objects.all()
-    permission_classes = []  # Temporarily disabled for testing
+    permission_classes = [permissions.IsAuthenticated]  # Require authentication
     
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -20,7 +19,8 @@ class TemplateListCreateView(generics.ListCreateAPIView):
         return TemplateListSerializer
     
     def get_queryset(self):
-        queryset = Template.objects.all()
+        # Only show templates created by the current user
+        queryset = Template.objects.filter(created_by=self.request.user)
         
         # Filter by category
         category = self.request.query_params.get('category')
@@ -52,25 +52,28 @@ class TemplateListCreateView(generics.ListCreateAPIView):
         return queryset
     
     def perform_create(self, serializer):
-        # For testing without authentication, don't set created_by
-        serializer.save()
+        # Set the created_by to the current user
+        serializer.save(created_by=self.request.user)
 
 
 class TemplateDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Retrieve, update or delete a template"""
-    queryset = Template.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = TemplateSerializer
-    permission_classes = []  # Temporarily disabled for testing
+    
+    def get_queryset(self):
+        # Only allow access to templates created by the current user
+        return Template.objects.filter(created_by=self.request.user)
     
     def perform_update(self, serializer):
         serializer.save()
 
 
 @api_view(['GET'])
-@permission_classes([])  # Temporarily disabled for testing
+@permission_classes([permissions.IsAuthenticated])
 def template_stats(request):
-    """Get template statistics"""
-    templates = Template.objects.all()
+    """Get template statistics for the current user"""
+    templates = Template.objects.filter(created_by=request.user)
     
     stats = {
         'total_templates': templates.count(),
@@ -85,7 +88,7 @@ def template_stats(request):
 
 
 @api_view(['GET'])
-@permission_classes([])  # Temporarily disabled for testing
+@permission_classes([permissions.IsAuthenticated])
 def template_categories(request):
     """Get all template categories"""
     categories = Template.CATEGORY_CHOICES
@@ -93,9 +96,9 @@ def template_categories(request):
 
 
 @api_view(['GET'])
-@permission_classes([])  # Temporarily disabled for testing
+@permission_classes([permissions.IsAuthenticated])
 def template_by_category(request):
-    """Get templates grouped by category"""
+    """Get templates grouped by category for the current user"""
     categories = {}
     for category_key, category_label in Template.CATEGORY_CHOICES:
         templates = Template.objects.filter(category=category_key, status='active')

@@ -49,6 +49,7 @@ class Template(models.Model):
     rating = models.DecimalField(max_digits=3, decimal_places=1, default=0.0)
     tracking_enabled = models.BooleanField(default=True)
     priority = models.CharField(max_length=20, default='medium')
+    organization = models.ForeignKey('organization.Company', on_delete=models.CASCADE, related_name='templates', null=True, blank=True)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_templates', null=True, blank=True)  # Made nullable for testing
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

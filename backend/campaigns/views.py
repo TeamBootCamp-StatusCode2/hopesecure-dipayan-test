@@ -11,8 +11,11 @@ from .serializers import (
 
 class CampaignListCreateView(generics.ListCreateAPIView):
     """List all campaigns or create a new campaign"""
-    queryset = Campaign.objects.all()
     permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        # Only show campaigns created by the current user
+        return Campaign.objects.filter(created_by=self.request.user)
     
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -25,8 +28,11 @@ class CampaignListCreateView(generics.ListCreateAPIView):
 
 class CampaignDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Retrieve, update or delete a campaign"""
-    queryset = Campaign.objects.all()
     permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        # Only allow access to campaigns created by the current user
+        return Campaign.objects.filter(created_by=self.request.user)
     
     def get_serializer_class(self):
         if self.request.method in ['PUT', 'PATCH']:
@@ -37,14 +43,14 @@ class CampaignDetailView(generics.RetrieveUpdateDestroyAPIView):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def campaign_stats(request):
-    """Get campaign statistics"""
-    campaigns = Campaign.objects.all()
+    """Get campaign statistics for the current user"""
+    campaigns = Campaign.objects.filter(created_by=request.user)
     
     stats = {
         'total_campaigns': campaigns.count(),
         'active_campaigns': campaigns.filter(status='active').count(),
         'completed_campaigns': campaigns.filter(status='completed').count(),
-        'total_targets': CampaignTarget.objects.count(),
+        'total_targets': CampaignTarget.objects.filter(campaign__created_by=request.user).count(),
         'total_emails_sent': sum(campaigns.values_list('emails_sent', flat=True)),
         'total_clicks': sum(campaigns.values_list('links_clicked', flat=True)),
         'total_submissions': sum(campaigns.values_list('credentials_submitted', flat=True)),

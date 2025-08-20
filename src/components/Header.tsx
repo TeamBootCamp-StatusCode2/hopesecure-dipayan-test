@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Shield, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import LogoutButton from "./LogoutButton";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -47,6 +48,7 @@ const Header = () => {
               navigate("/settings");
             }}
             >Organization</Button>
+            <LogoutButton className="px-4 py-2 rounded-md border border-red-200 hover:bg-red-50 transition-colors" />
           </div>
 
           {/* Mobile Menu Button */}
@@ -82,6 +84,7 @@ const Header = () => {
                   navigate("/settings");
                 }}  
                 >Organization</Button>
+                <LogoutButton className="justify-start px-4 py-2 rounded-md border border-red-200 hover:bg-red-50 transition-colors text-left" />
               </div>
             </nav>
           </div>

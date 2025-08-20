@@ -11,7 +11,17 @@ from .serializers import CompanySerializer, CompanyUpdateSerializer
 def get_company_info(request):
     """Get company information for authenticated user"""
     try:
-        company = Company.get_instance(user=request.user)
+        # Super admin can see all companies
+        if request.user.is_super_admin:
+            companies = Company.get_all_companies()
+            serializer = CompanySerializer(companies, many=True, context={'request': request})
+            return Response({
+                'is_super_admin': True,
+                'companies': serializer.data
+            })
+        
+        # Regular users see their organization
+        company = Company.get_user_company(user=request.user)
         serializer = CompanySerializer(company, context={'request': request})
         return Response(serializer.data)
     except Exception as e:
@@ -26,7 +36,7 @@ def get_company_info(request):
 def update_company_info(request):
     """Update company information"""
     try:
-        company = Company.get_instance(user=request.user)
+        company = Company.get_user_company(user=request.user)
         
         serializer = CompanyUpdateSerializer(company, data=request.data, partial=True)
         if serializer.is_valid():
@@ -50,7 +60,7 @@ def update_company_info(request):
 def upload_company_logo(request):
     """Upload company logo"""
     try:
-        company = Company.get_instance(user=request.user)
+        company = Company.get_user_company(user=request.user)
         
         if 'logo' not in request.FILES:
             return Response(
@@ -86,5 +96,81 @@ def upload_company_logo(request):
         print(f"Exception in upload_company_logo: {str(e)}")
         return Response(
             {'error': f'Failed to upload logo: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_organizations(request):
+    """Super admin endpoint to get all organizations"""
+    if not request.user.is_super_admin:
+        return Response(
+            {'error': 'Access denied. Super admin privileges required.'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    try:
+        companies = Company.objects.all().order_by('-created_at')
+        serializer = CompanySerializer(companies, many=True, context={'request': request})
+        
+        # Add additional stats for each organization
+        organizations_data = []
+        for company_data in serializer.data:
+            company = Company.objects.get(id=company_data['id'])
+            org_data = company_data.copy()
+            org_data.update({
+                'user_count': company.users.count(),
+                'admin_email': company.created_by.email if company.created_by else None,
+                'employee_count_actual': company.organization_employees.count(),
+                'campaign_count': company.campaigns.count() if hasattr(company, 'campaigns') else 0,
+                'template_count': company.templates.count() if hasattr(company, 'templates') else 0,
+            })
+            organizations_data.append(org_data)
+        
+        return Response({
+            'total_organizations': companies.count(),
+            'organizations': organizations_data
+        })
+    except Exception as e:
+        return Response(
+            {'error': f'Failed to get organizations: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_system_stats(request):
+    """Super admin endpoint to get system-wide statistics"""
+    if not request.user.is_super_admin:
+        return Response(
+            {'error': 'Access denied. Super admin privileges required.'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    try:
+        from django.contrib.auth import get_user_model
+        from employees.models import Employee
+        from campaigns.models import Campaign
+        from templates.models import Template
+        
+        User = get_user_model()
+        
+        stats = {
+            'total_organizations': Company.objects.count(),
+            'total_users': User.objects.count(),
+            'total_employees': Employee.objects.count(),
+            'total_campaigns': Campaign.objects.count(),
+            'total_templates': Template.objects.count(),
+            'super_admins': User.objects.filter(role='super_admin').count(),
+            'org_admins': User.objects.filter(role='admin').count(),
+            'active_organizations': Company.objects.filter(users__isnull=False).distinct().count(),
+        }
+        
+        return Response(stats)
+    except Exception as e:
+        return Response(
+            {'error': f'Failed to get system stats: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

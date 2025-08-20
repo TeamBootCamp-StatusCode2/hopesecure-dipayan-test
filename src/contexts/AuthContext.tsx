@@ -21,6 +21,11 @@ interface RegisterData {
   role?: string;
   department?: string;
   phone_number?: string;
+  // Company information
+  company_name: string;
+  company_domain?: string;
+  company_industry?: string;
+  company_employee_count?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

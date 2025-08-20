@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { apiClient } from "@/lib/api";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
@@ -21,7 +22,16 @@ const SignIn = () => {
 
     try {
       await login(email, password);
-      navigate(from, { replace: true });
+      
+      // Get user info to check role
+      const userResponse = await apiClient.getProfile();
+      
+      // Redirect based on user role
+      if (userResponse.role === 'super_admin') {
+        navigate('/superadmin', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (err: unknown) {
       const error = err as Error;
       setError(error.message || "Login failed. Please check your credentials.");

@@ -85,7 +85,33 @@ class APIClient {
     });
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.message || 'Registration failed');
+      // Handle different error formats from Django REST Framework
+      let errorMessage = 'Registration failed';
+      
+      if (data.message) {
+        errorMessage = data.message;
+      } else if (data.error) {
+        errorMessage = data.error;
+      } else if (data.non_field_errors) {
+        errorMessage = Array.isArray(data.non_field_errors) 
+          ? data.non_field_errors.join(', ') 
+          : data.non_field_errors;
+      } else if (typeof data === 'object') {
+        // Handle field-specific errors
+        const errors = [];
+        for (const [field, messages] of Object.entries(data)) {
+          if (Array.isArray(messages)) {
+            errors.push(`${field}: ${messages.join(', ')}`);
+          } else {
+            errors.push(`${field}: ${messages}`);
+          }
+        }
+        if (errors.length > 0) {
+          errorMessage = errors.join('; ');
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
     if (data.token) {
       this.token = data.token;
@@ -96,13 +122,18 @@ class APIClient {
 
   async logout() {
     if (this.token) {
-      await fetch(`${API_BASE_URL}/auth/logout/`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Token ${this.token}`
-        },
-      });
+      try {
+        await fetch(`${API_BASE_URL}/auth/logout/`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Token ${this.token}`
+          },
+        });
+      } catch (error) {
+        console.error('Logout API call failed:', error);
+        // Continue with local cleanup even if API call fails
+      }
     }
     this.token = null;
     localStorage.removeItem("auth_token");
@@ -163,6 +194,27 @@ class APIClient {
       throw new Error(data.error || 'Failed to upload logo');
     }
     return data;
+  }
+
+  // Super Admin API methods
+  async getSystemStats(): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/organization/admin/stats/`, {
+      headers: { "Authorization": `Token ${this.token}` },
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch system statistics');
+    }
+    return response.json();
+  }
+
+  async getAllOrganizations(): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/organization/admin/organizations/`, {
+      headers: { "Authorization": `Token ${this.token}` },
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch all organizations');
+    }
+    return response.json();
   }
 
   // Template API methods
@@ -363,5 +415,18 @@ export const setUserData = (user: User) => {
 };
 
 export const clearUserData = () => {
+  // Clear all user-related data from localStorage
   localStorage.removeItem("user_data");
+  localStorage.removeItem("auth_token");
+  
+  // Clear any other user-specific cached data
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && (key.startsWith('user_') || key.startsWith('cache_') || key.startsWith('template_') || key.startsWith('employee_') || key.startsWith('campaign_'))) {
+      keysToRemove.push(key);
+    }
+  }
+  
+  keysToRemove.forEach(key => localStorage.removeItem(key));
 };

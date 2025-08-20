@@ -51,6 +51,7 @@ class Campaign(models.Model):
     redirect_url = models.URLField(blank=True)
     
     # Metadata
+    organization = models.ForeignKey('organization.Company', on_delete=models.CASCADE, related_name='campaigns', null=True, blank=True)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_campaigns')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
