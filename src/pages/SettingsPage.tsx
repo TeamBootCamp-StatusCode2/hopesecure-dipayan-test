@@ -12,14 +12,17 @@ import {
   Bell, 
   Download,
   Upload,
-  Save
+  Save,
+  LayoutDashboard
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiClient, Company } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 const SettingsPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [organizationSettings, setOrganizationSettings] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
@@ -182,6 +185,13 @@ const SettingsPage = () => {
             <p className="text-gray-600 mt-1">Manage your organization settings and configuration</p>
           </div>
           <div className="flex space-x-2">
+            <Button 
+              variant="outline"
+              onClick={() => navigate('/dashboard')}
+            >
+              <LayoutDashboard className="h-4 w-4 mr-2" />
+              Dashboard
+            </Button>
             <Button variant="outline">
               <Upload className="h-4 w-4 mr-2" />
               Import Config

@@ -19,7 +19,8 @@ import {
   Pencil,
   CheckCircle,
   Eye,
-  Trash2
+  Trash2,
+  Home
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCampaigns } from "@/hooks/useCampaigns";
@@ -171,15 +172,26 @@ const Dashboard = () => {
               <h1 className="text-3xl font-bold mb-2">Security Campaign Dashboard</h1>
               <p className="text-gray-300">Monitor and manage your cybersecurity awareness campaigns</p>
             </div>
-            <Button 
-              variant="accent" 
-              size="lg" 
-              className="w-fit"
-              onClick={() => navigate('/campaign/create')}
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              New Campaign
-            </Button>
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="w-fit bg-white/10 text-white border-white/20 hover:bg-white/20"
+                onClick={() => navigate('/')}
+              >
+                <Home className="h-5 w-5 mr-2" />
+                Home
+              </Button>
+              <Button 
+                variant="accent" 
+                size="lg" 
+                className="w-fit"
+                onClick={() => navigate('/campaign/create')}
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                New Campaign
+              </Button>
+            </div>
           </div>
         </div>
       </div>
