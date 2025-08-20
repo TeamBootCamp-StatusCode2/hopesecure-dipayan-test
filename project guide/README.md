@@ -1,16 +1,17 @@
-# 📁 HopeSecure Project - Complete File Structure Guide
+# 📁 HopeSecure Project - Complete Guide & Documentation
 
-> **Target:** Cybersecurity Simulation Platform  
+> **Target:** Advanced Cybersecurity Awareness Platform  
 > **Stack:** React + TypeScript (Frontend) + Django REST API (Backend)  
 > **Database:** SQLite (Development) / PostgreSQL (Production)  
-> **Status:** ✅ Fully Functional & Production Ready
+> **Status:** ✅ Production Ready with Real-Time Features  
+> **Updated:** August 2025
 
 ---
 
-## 🏗️ **Root Project Structure**
+## 🏗️ **Current Project Structure**
 
 ```
-statuscode-backup/                          # 📁 Main Project Root
+hopesecure-dipayan-test/                    # 📁 Main Project Root
 ├── 📄 package.json                         # Frontend dependencies & scripts
 ├── 📄 vite.config.ts                       # Vite build configuration
 ├── 📄 tailwind.config.ts                   # Tailwind CSS configuration
@@ -22,19 +23,18 @@ statuscode-backup/                          # 📁 Main Project Root
 ├── 📄 components.json                      # shadcn/ui components config
 ├── 📄 index.html                           # Main HTML entry point
 ├── 📄 bun.lockb                            # Lock file for dependencies
+├── 📄 clear_storage.js                     # Development utility
+├── 📄 clear_user_templates.js              # Development utility
+├── 📄 debug_session.html                   # Debug interface
 │
 ├── 📁 src/                                 # 🎯 FRONTEND SOURCE CODE
 ├── 📁 backend/                             # 🎯 BACKEND SOURCE CODE
 ├── 📁 public/                              # Static frontend assets
-├── 📁 dist/                                # Production build output
+├── 📁 project guide/                       # 📚 ALL PROJECT DOCUMENTATION
 │
-└── 📄 Documentation Files:
-    ├── README.md                           # Project overview
-    ├── PROJECT_OVERVIEW.md                 # Detailed project guide
-    ├── INTEGRATION_COMPLETE.md             # Integration status
-    ├── REAL_TIME_FEATURES.md               # Real-time features info
-    ├── PRODUCTION_SECURITY.md              # Production security guide
-    └── project_tracker.md                  # Development tracker
+└── 📄 Legacy Documentation (moved to project guide/):
+    ├── All .md files now organized in project guide folder
+    └── Comprehensive documentation structure
 ```
 
 ---
@@ -60,6 +60,8 @@ src/components/
 ├── 📄 HowItWorksSection.tsx               # How it works section
 ├── 📄 DashboardHeader.tsx                 # Authenticated user header
 ├── 📄 ProtectedRoute.tsx                  # Route protection wrapper
+├── 📄 CampaignNotification.tsx            # Real-time campaign notifications
+├── 📄 LogoutButton.tsx                    # Logout functionality
 │
 └── 📁 ui/                                 # 🔧 shadcn/ui Components
     ├── 📄 button.tsx                      # Button variants
@@ -82,6 +84,8 @@ src/components/
     ├── 📄 navigation-menu.tsx             # Navigation menus
     ├── 📄 sidebar.tsx                     # Sidebar layouts
     ├── 📄 toggle.tsx                      # Toggle switches
+    ├── 📄 checkbox.tsx                    # Checkbox components
+    ├── 📄 switch.tsx                      # Switch toggles
     └── 📄 ... (other UI components)
 ```
 
@@ -89,12 +93,12 @@ src/components/
 ```
 src/pages/
 ├── 📄 Index.tsx                           # 🏠 Landing/Home page
-├── 📄 signin.tsx                          # 🔐 Login page (working)
+├── 📄 signin.tsx                          # 🔐 Login page (current)
 ├── 📄 signin-updated.tsx                  # Updated signin version
 ├── 📄 signup.tsx                          # 📝 Registration page
-├── 📄 Dashboard.tsx                       # 📊 Main dashboard
-├── 📄 CreateCampaign.tsx                  # ➕ Campaign creation
-├── 📄 CampaignExecution.tsx               # ▶️ Campaign management
+├── 📄 Dashboard.tsx                       # 📊 Main dashboard with CRUD operations
+├── 📄 CreateCampaign.tsx                  # ➕ Campaign creation & editing
+├── 📄 CampaignExecution.tsx               # ▶️ Real-time campaign monitoring
 ├── 📄 TemplateManagement.tsx              # 📧 Template CRUD (main)
 ├── 📄 TemplateManagement_Working.tsx      # Working template version
 ├── 📄 TemplateManagement_Clean.tsx        # Clean template version
@@ -102,7 +106,7 @@ src/pages/
 ├── 📄 AdvancedReports.tsx                 # 📈 Analytics & reports
 ├── 📄 PhishingSimulation.tsx              # 🎣 Simulation interface
 ├── 📄 RealTimeCampaignMonitor.tsx         # 📡 Real-time monitoring
-├── 📄 SettingsPage.tsx                    # ⚙️ User settings
+├── 📄 SettingsPage.tsx                    # ⚙️ Company management & settings
 └── 📄 NotFound.tsx                        # 404 error page
 ```
 
@@ -114,6 +118,7 @@ src/
 │
 ├── 📁 hooks/
 │   ├── 📄 useApi.ts                       # 🔗 API data fetching hooks
+│   ├── 📄 useCampaigns.ts                 # 🎯 Campaign state management
 │   ├── 📄 use-mobile.tsx                  # 📱 Mobile detection
 │   └── 📄 use-toast.ts                    # 🍞 Toast notification hook
 │
@@ -122,7 +127,7 @@ src/
 │   └── 📄 utils.ts                        # 🛠️ Utility functions
 │
 └── 📁 data/
-    └── 📄 templates.ts                    # 📋 Static template data
+    └── 📄 templates.ts                    # 📋 Static template data & fallbacks
 ```
 
 ### **Static Assets**
@@ -130,7 +135,12 @@ src/
 src/assets/
 ├── 🖼️ hero-security.jpg                  # Hero section image
 ├── 🖼️ hopsecurelogo.png                  # Company logo
-└── 🖼️ ChatGPT Image Aug 15, 2025...     # AI generated image
+└── 🖼️ react.svg                          # React logo
+
+public/
+├── 🖼️ favicon.ico                        # Site favicon
+├── 🖼️ placeholder.svg                    # Placeholder images
+└── 📄 robots.txt                          # SEO robots file
 ```
 
 ---
@@ -143,12 +153,20 @@ backend/
 ├── 📄 manage.py                           # Django management script
 ├── 📄 requirements.txt                    # Python dependencies
 ├── 📄 db.sqlite3                          # SQLite database file
-├── 📄 .env                                # Environment variables
-├── 📄 datadump.json                       # Sample data export
 ├── 📄 test_api.py                         # API testing script
+├── 📄 verify_setup.py                     # Setup verification
+├── 📄 create_sample_admin_data.py         # Sample admin data
+├── 📄 create_super_admin.py               # Super admin creation
+├── 📄 check_accounts.py                   # Account verification
+├── 📄 check_companies.py                  # Company data check
+├── 📄 fix_data_ownership.py               # Data ownership fixes
+├── 📄 migrate_organizations.py            # Organization migration
 │
-├── 📄 Documentation:
-│   ├── README.md                          # Backend setup guide
+├── 📁 media/                              # Media files storage
+│   └── 📁 company_logos/                  # Company logo uploads
+│
+├── � Documentation/ (moved to project guide/):
+│   ├── BACKEND_README.md                  # Backend setup guide
 │   └── FRONTEND_INTEGRATION.md            # Integration guide
 │
 └── 📁 Django Apps:                        # Each app handles specific functionality
@@ -156,7 +174,7 @@ backend/
 
 ### **Main Django Configuration**
 ```
-backend/cyberguard_backend/
+backend/hopesecure_backend/                # Updated from cyberguard_backend
 ├── 📄 __init__.py                         # Python package marker
 ├── 📄 settings.py                         # 🔧 Django settings (MAIN CONFIG)
 ├── 📄 urls.py                             # URL routing configuration
@@ -196,6 +214,20 @@ backend/templates/
 ├── 📁 management/                         # Management commands
 │   └── 📁 commands/
 │       └── 📄 populate_sample_data.py    # Sample data loader
+└── 📁 __pycache__/
+```
+
+### **Organization App**
+```
+backend/organization/
+├── 📄 models.py                           # 🏢 Organization & company models
+├── 📄 serializers.py                     # Organization API serialization
+├── 📄 views.py                            # Organization management endpoints
+├── 📄 urls.py                             # Organization routing
+├── 📄 admin.py                            # Organization admin interface
+├── 📄 tests.py                            # Organization tests
+├── 📁 migrations/
+│   └── 📄 0001_initial.py
 └── 📁 __pycache__/
 ```
 
@@ -243,7 +275,29 @@ backend/reports/
 
 ---
 
-## 🗄️ **Database Schema Overview**
+## � **Project Documentation Structure**
+
+### **Complete Documentation in `project guide/` folder:**
+```
+project guide/
+├── 📄 README.md                           # This comprehensive guide
+├── 📄 BACKEND_README.md                   # Backend setup & API guide
+├── 📄 FRONTEND_INTEGRATION.md             # Frontend-backend integration
+├── 📄 PROJECT_OVERVIEW.md                 # Detailed project overview
+├── 📄 PROJECT_FILE_STRUCTURE.md           # File structure details
+├── 📄 INTEGRATION_COMPLETE.md             # Integration completion status
+├── 📄 REAL_TIME_FEATURES.md               # Real-time functionality docs
+├── 📄 PRODUCTION_SECURITY.md              # Production security guide
+├── 📄 ADMIN_MONITORING_IMPLEMENTATION.md  # Admin monitoring features
+├── 📄 SUPER_ADMIN_IMPLEMENTATION.md       # Super admin functionality
+├── 📄 ORGANIZATIONAL_REGISTRATION_IMPLEMENTATION.md # Org registration
+├── 📄 SECURITY_MONITORING_ACCESS_UPDATE.md # Security monitoring access
+└── 📄 project_tracker.md                  # Development progress tracker
+```
+
+---
+
+## �🗄️ **Database Schema Overview**
 
 ### **Core Models & Relationships**
 ```
@@ -254,6 +308,14 @@ authentication.User                         # Extended Django user
 ├── first_name, last_name, role
 ├── department, phone_number
 └── is_email_verified, created_at
+
+organization.Organization                   # Company/organization data
+├── id, name, domain, industry
+├── employee_count, timezone
+├── company_address, website_url
+├── phone_number, registration_number
+├── founded_year, default_language
+└── created_at, updated_at
 
 employees.Department                        # Organizational structure
 ├── id, name, description
@@ -342,6 +404,17 @@ reports.Report                              # Analytics & reports
 └── GET    /departments/                   # List departments
 ```
 
+### **Organization Endpoints**
+```
+🏢 /api/organization/
+├── GET    /                               # List organizations
+├── POST   /                               # Create organization
+├── GET    /{id}/                          # Get organization details
+├── PUT    /{id}/                          # Update organization
+├── DELETE /{id}/                          # Delete organization
+└── POST   /{id}/logo/                     # Upload organization logo
+```
+
 ---
 
 ## 📦 **Key Dependencies**
@@ -358,7 +431,9 @@ reports.Report                              # Analytics & reports
     "@radix-ui/react-*": "...",           // UI component library
     "typescript": "^5.8.3",               // Type safety
     "vite": "^5.4.19",                    // Build tool
-    "lucide-react": "^0.462.0"            // Icon library
+    "lucide-react": "^0.462.0",           // Icon library
+    "clsx": "^2.1.1",                     // Conditional CSS classes
+    "tailwind-merge": "^2.5.4"            // Tailwind class merging
   }
 }
 ```
@@ -383,10 +458,10 @@ cd backend
 python manage.py runserver                # Runs on http://127.0.0.1:8000
 
 # Terminal 2: Frontend Server  
-npm run dev                                # Runs on http://localhost:8081
+npm run dev                                # Runs on http://localhost:5173
 ```
 
-### **Available Scripts**
+### **Available Scripts & Commands**
 ```bash
 # Frontend Commands
 npm run dev          # Start development server
@@ -395,11 +470,14 @@ npm run preview      # Preview production build
 npm run lint         # Run ESLint
 
 # Backend Commands
-python manage.py runserver              # Start Django server
-python manage.py migrate               # Apply database migrations
-python manage.py createsuperuser       # Create admin user
-python manage.py populate_sample_data  # Load sample data
-python manage.py test                  # Run tests
+python manage.py runserver                  # Start Django server
+python manage.py migrate                   # Apply database migrations
+python manage.py createsuperuser           # Create admin user
+python manage.py create_sample_employees    # Create sample employee data
+python manage.py create_sample_admin_data   # Create sample admin data
+python manage.py test                      # Run tests
+python create_super_admin.py               # Create super admin
+python verify_setup.py                     # Verify system setup
 ```
 
 ---
@@ -409,20 +487,21 @@ python manage.py test                  # Run tests
 ### **Important Configuration Files**
 ```
 🔧 Key Config Files:
-├── backend/cyberguard_backend/settings.py    # Django settings
-├── backend/.env                               # Environment variables
+├── backend/hopesecure_backend/settings.py    # Django settings
 ├── vite.config.ts                            # Vite configuration
 ├── tailwind.config.ts                        # Tailwind CSS config
-└── tsconfig.json                             # TypeScript config
+├── tsconfig.json                             # TypeScript config
+└── components.json                           # shadcn/ui config
 ```
 
-### **Environment Variables (.env)**
+### **Environment Variables**
 ```bash
+# Backend Environment (.env if needed)
 DEBUG=True                                 # Development mode
 SECRET_KEY=django-insecure-...             # Django secret key
 DATABASE_URL=sqlite:///db.sqlite3          # Database connection
 ALLOWED_HOSTS=localhost,127.0.0.1          # Allowed hosts
-CORS_ALLOWED_ORIGINS=http://localhost:8081 # CORS origins
+CORS_ALLOWED_ORIGINS=http://localhost:5173 # CORS origins (updated port)
 ```
 
 ---
@@ -430,19 +509,35 @@ CORS_ALLOWED_ORIGINS=http://localhost:8081 # CORS origins
 ## 📋 **Project Status & Features**
 
 ### **✅ Completed Features**
-- ✅ User Authentication (Login/Logout)
+- ✅ User Authentication (Login/Logout/Registration)
 - ✅ Protected Routes with Role-Based Access
-- ✅ Dashboard with Real Data
-- ✅ Template Management (CRUD)
-- ✅ Campaign Management
-- ✅ Employee Management
-- ✅ REST API Backend
+- ✅ Dashboard with Real-Time Data Integration
+- ✅ Template Management (CRUD Operations)
+- ✅ Campaign Management with Draft/Published States
+- ✅ Employee Management System
+- ✅ Organization/Company Management
+- ✅ Real-Time Campaign Execution Monitoring
+- ✅ Department Analysis & Vulnerable Employee Tracking
+- ✅ Comprehensive CRUD Operations (Edit/Delete/Create)
+- ✅ Navigation Enhancements (Home/Dashboard buttons)
+- ✅ REST API Backend with Complete Endpoints
 - ✅ Frontend-Backend Integration
-- ✅ Responsive UI Design
+- ✅ Responsive UI Design with shadcn/ui
 - ✅ Production Build Ready
+- ✅ Complete Documentation Organization
+
+### **🎯 Advanced Features Implemented**
+- 🎯 **Real-Time Campaign Monitoring:** Live activity feeds and progress tracking
+- 🎯 **Draft Campaign System:** Save and edit campaigns before publishing
+- 🎯 **Dynamic Department Analysis:** Real-time vulnerability scoring
+- 🎯 **Pre-made Template Fallbacks:** Automatic template loading when user templates unavailable
+- 🎯 **Interactive Navigation:** Home and Dashboard buttons across pages
+- 🎯 **Company Settings Management:** Complete organization profile management
+- 🎯 **Notification System:** Campaign alerts and status updates
 
 ### **🎯 Core User Roles**
-- **Admin:** Full system access
+- **Super Admin:** System-wide access and management
+- **Admin:** Full organizational access
 - **Manager:** Campaign & employee management
 - **Analyst:** Template creation & campaign execution
 - **Employee:** Limited access to personal data
@@ -451,33 +546,69 @@ CORS_ALLOWED_ORIGINS=http://localhost:8081 # CORS origins
 
 ## 🚧 **Development Notes for Team**
 
+### **Recent Major Updates (August 2025)**
+1. **Navigation Enhancements:** Added Home and Dashboard buttons across all pages
+2. **Real-Time Data Integration:** Replaced all hardcoded data with live data feeds
+3. **CRUD Operations:** Complete Create, Read, Update, Delete functionality for campaigns
+4. **Draft Management:** Full draft campaign system with edit capabilities
+5. **Documentation Organization:** All .md files moved to organized "project guide" folder
+6. **Department Analysis:** Real-time vulnerability tracking and employee analysis
+7. **Template System:** Pre-made template fallbacks and user template management
+
 ### **Important File Interactions**
 1. **Authentication Flow:** `AuthContext.tsx` ↔ `api.ts` ↔ `authentication/views.py`
 2. **Routing:** `App.tsx` → `pages/*.tsx` → Protected by `ProtectedRoute.tsx`
 3. **API Communication:** `hooks/useApi.ts` → `lib/api.ts` → Django REST endpoints
-4. **Database:** Django Models → Migrations → SQLite/PostgreSQL
+4. **Real-Time Features:** `useCampaigns.ts` → localStorage → Real-time UI updates
+5. **Database:** Django Models → Migrations → SQLite/PostgreSQL
 
 ### **Code Organization Principles**
-- **Frontend:** Component-based architecture with hooks for state
+- **Frontend:** Component-based architecture with custom hooks for state
 - **Backend:** Django apps for feature separation
 - **API:** RESTful design with DRF serializers
 - **Styling:** Tailwind CSS with shadcn/ui components
-- **Type Safety:** TypeScript throughout frontend
+- **Type Safety:** TypeScript throughout frontend with proper interfaces
+- **State Management:** React Context + localStorage for persistence
 
 ### **Development Best Practices**
 - Always test in both dev and build modes
 - Use TypeScript interfaces for API responses
 - Follow Django REST framework conventions
-- Maintain consistent file naming
+- Maintain consistent file naming (PascalCase for components)
 - Document new features and API changes
+- Test CRUD operations thoroughly
+- Verify real-time data flow
 
 ---
 
 ## 📞 **For Team Questions**
 
 **Frontend Issues:** Check `src/` structure, API integration in `lib/api.ts`  
-**Backend Issues:** Check Django apps in `backend/`, settings in `settings.py`  
+**Backend Issues:** Check Django apps in `backend/`, settings in `hopesecure_backend/settings.py`  
 **Database Issues:** Check models and migrations in each app  
 **Build Issues:** Check `vite.config.ts`, `package.json`, and TypeScript configs  
+**Navigation Issues:** Check routing in `App.tsx` and navigation buttons in page headers  
+**Real-Time Features:** Check `useCampaigns.ts` hook and localStorage integration  
+**CRUD Operations:** Check individual page components for edit/delete functionality  
 
-**Current Status:** ✅ Fully functional development and production environment!
+**Current Status:** ✅ Fully functional development and production environment with advanced features!
+
+---
+
+## 🎯 **Quick Start Guide**
+
+### **For New Developers:**
+1. **Clone the repository**
+2. **Install dependencies:** `npm install` (frontend) + `pip install -r requirements.txt` (backend)
+3. **Setup database:** `cd backend && python manage.py migrate`
+4. **Create sample data:** `python manage.py create_sample_employees`
+5. **Start servers:** `python manage.py runserver` (backend) + `npm run dev` (frontend)
+6. **Access application:** http://localhost:5173
+
+### **For Documentation:**
+- **Main Guide:** This README.md in project guide folder
+- **Backend Setup:** BACKEND_README.md
+- **Integration Details:** FRONTEND_INTEGRATION.md
+- **Feature Details:** Check individual .md files in project guide folder
+
+**Happy Coding! 🚀**
