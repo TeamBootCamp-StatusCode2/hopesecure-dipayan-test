@@ -129,11 +129,11 @@ const CampaignExecution = () => {
           <div className="flex items-center space-x-4">
             <Button 
               variant="ghost" 
-              onClick={() => navigate('/create-campaign')}
+              onClick={() => navigate('/dashboard')}
               className="hover:bg-white/50"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Campaign Setup
+              Back to Dashboard
             </Button>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Campaign Execution</h1>

@@ -178,22 +178,31 @@ class APIClient {
       console.error('Get templates error:', data);
       throw new Error(data.error || 'Failed to fetch templates');
     }
-    return data;
+    // Handle paginated response - return results array or the data if it's already an array
+    return Array.isArray(data) ? data : (data.results || []);
   }
 
   async createTemplate(templateData: Partial<Template>): Promise<Template> {
+    const headers: Record<string, string> = { 
+      "Content-Type": "application/json"
+    };
+    
+    // Only add authorization if token exists
+    if (this.token) {
+      headers["Authorization"] = `Token ${this.token}`;
+    }
+    
     const response = await fetch(`${API_BASE_URL}/templates/`, {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Token ${this.token}`
-      },
+      headers,
       body: JSON.stringify(templateData),
     });
     const data = await response.json();
     if (!response.ok) {
       console.error('Create template error:', data);
-      throw new Error(data.error || 'Failed to create template');
+      console.error('Response status:', response.status);
+      console.error('Request data:', templateData);
+      throw new Error(data.detail || data.error || JSON.stringify(data) || 'Failed to create template');
     }
     return data;
   }

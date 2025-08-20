@@ -381,3 +381,14 @@ export const deleteTemplate = (id: number): boolean => {
   templateData.splice(index, 1);
   return true;
 };
+
+// Function to get user-created templates only (excludes default/sample templates)
+export const getUserCreatedTemplates = (): Template[] => {
+  // User-created templates will have IDs greater than 100 (assuming default templates have IDs 1-99)
+  // or can be identified by a custom property we add when creating templates
+  return templateData.filter(template => 
+    template.id > 100 || 
+    template.status === 'Draft' || 
+    template.tags?.includes('user-created')
+  );
+};

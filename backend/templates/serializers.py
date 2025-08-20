@@ -18,6 +18,13 @@ class TemplateSerializer(serializers.ModelSerializer):
     tags = TemplateTagSerializer(many=True, read_only=True)
     attachments = TemplateAttachmentSerializer(many=True, read_only=True)
     created_by_name = serializers.CharField(source='created_by.full_name', read_only=True)
+    creator_is_admin = serializers.SerializerMethodField()
+    
+    def get_creator_is_admin(self, obj):
+        """Check if the template creator is an admin user"""
+        if obj.created_by:
+            return obj.created_by.is_staff
+        return False  # No creator means system template (considered admin/pre-created)
     
     class Meta:
         model = Template
@@ -26,8 +33,8 @@ class TemplateSerializer(serializers.ModelSerializer):
             'sender_email', 'html_content', 'css_styles', 'landing_page_url', 'domain',
             'difficulty', 'risk_level', 'status', 'has_attachments', 'has_css', 
             'is_responsive', 'thumbnail', 'usage_count', 'success_rate', 'rating',
-            'tracking_enabled', 'priority', 'created_by', 'created_by_name', 'created_at', 
-            'updated_at', 'last_used', 'tags', 'attachments'
+            'tracking_enabled', 'priority', 'created_by', 'created_by_name', 'creator_is_admin',
+            'created_at', 'updated_at', 'last_used', 'tags', 'attachments'
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at', 'usage_count', 'success_rate']
 
@@ -60,13 +67,21 @@ class TemplateListSerializer(serializers.ModelSerializer):
     """Simplified serializer for listing templates"""
     tags = serializers.StringRelatedField(many=True, read_only=True)
     created_by_name = serializers.CharField(source='created_by.full_name', read_only=True)
+    creator_is_admin = serializers.SerializerMethodField()
+    
+    def get_creator_is_admin(self, obj):
+        """Check if the template creator is an admin user"""
+        if obj.created_by:
+            return obj.created_by.is_staff
+        return False  # No creator means system template (considered admin/pre-created)
     
     class Meta:
         model = Template
         fields = [
             'id', 'name', 'category', 'description', 'email_subject', 'difficulty',
             'risk_level', 'status', 'thumbnail', 'usage_count', 'success_rate', 
-            'rating', 'priority', 'created_by_name', 'created_at', 'last_used', 'tags'
+            'rating', 'priority', 'created_by', 'created_by_name', 'creator_is_admin', 
+            'created_at', 'last_used', 'tags'
         ]
 
 

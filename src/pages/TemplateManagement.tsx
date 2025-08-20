@@ -60,10 +60,11 @@ import { templateData, getActiveTemplates, addTemplate, updateTemplate, deleteTe
 import { apiClient, Template as APITemplate } from "@/lib/api";
 
 const TemplateManagement = () => {
-  const [templates, setTemplates] = useState<any[]>(templateData);
+  const [templates, setTemplates] = useState<any[]>([]);  // Start with empty array
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [activeTemplateTab, setActiveTemplateTab] = useState("pre-created"); // New tab state
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showAdvancedEditor, setShowAdvancedEditor] = useState(false);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
@@ -76,6 +77,46 @@ const TemplateManagement = () => {
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newTag, setNewTag] = useState('');
+
+  // Load templates from API on component mount
+  useEffect(() => {
+    loadTemplatesFromAPI();
+  }, []);
+
+  const loadTemplatesFromAPI = async () => {
+    setLoading(true);
+    try {
+      const apiTemplates = await apiClient.getTemplates();
+      
+      // Also load user templates from localStorage and merge them
+      const userTemplatesFromStorage = JSON.parse(localStorage.getItem('hopesecure_user_templates') || '[]');
+      
+      // Mark localStorage templates as user created
+      const markedUserTemplates = userTemplatesFromStorage.map((template: any) => ({
+        ...template,
+        isUserCreated: true,
+        created_by: template.created_by || 'user'
+      }));
+      
+      // Combine API templates with localStorage templates, avoiding duplicates
+      const allTemplates = [...(Array.isArray(apiTemplates) ? apiTemplates : [])];
+      
+      // Add localStorage templates that don't exist in API (by ID)
+      markedUserTemplates.forEach((userTemplate: any) => {
+        if (!allTemplates.find(t => t.id === userTemplate.id)) {
+          allTemplates.push(userTemplate);
+        }
+      });
+      
+      setTemplates(allTemplates);
+    } catch (error) {
+      console.warn('Failed to load templates from API, using fallback:', error);
+      // Fallback to static data if API fails
+      setTemplates(Array.isArray(templateData) ? templateData : []);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const [mimicSettings, setMimicSettings] = useState({
     enableDomainMimic: false,
@@ -166,33 +207,98 @@ const TemplateManagement = () => {
     
     try {
       // Create new template object for API
-      const newTemplateData = {
-        name: templateSettings.name,
-        category: templateSettings.category.toLowerCase().replace(/\s+/g, '_'),
+      const categoryMapping = {
+        'credential phishing': 'credential',
+        'link click tracking': 'link_click', 
+        'attachment download': 'attachment',
+        'data input form': 'data_input',
+        'social engineering': 'social_engineering'
+      };
+      
+      const mappedCategory = categoryMapping[templateSettings.category.toLowerCase()] || 
+                            templateSettings.category.toLowerCase().replace(/\s+/g, '_');
+      
+      // Prepare template data with proper validation
+      const templateData: any = {
+        name: templateSettings.name || 'Untitled Template',
+        category: mappedCategory,
         description: templateSettings.description || 'Custom template created in Template Management',
-        email_subject: templateSettings.emailSubject || `Template: ${templateSettings.name}`,
+        email_subject: templateSettings.emailSubject || `Template: ${templateSettings.name || 'Untitled'}`,
         sender_name: templateSettings.senderName || 'System',
         sender_email: templateSettings.senderEmail || 'noreply@domain.com',
-        html_content: templateSettings.htmlContent || '',
+        html_content: templateSettings.htmlContent || '<p>Template content</p>',
         css_styles: templateSettings.cssStyles || '',
-        landing_page_url: templateSettings.landingPageUrl || '',
         domain: mimicSettings.mimicDomain || 'custom-template.com',
-        difficulty: templateSettings.difficulty?.toLowerCase() || 'intermediate',
-        risk_level: templateSettings.difficulty?.toLowerCase() || 'intermediate',
+        difficulty: (templateSettings.difficulty?.toLowerCase() === 'expert' ? 'advanced' : templateSettings.difficulty?.toLowerCase()) || 'intermediate',
+        risk_level: (templateSettings.difficulty?.toLowerCase() === 'expert' ? 'advanced' : templateSettings.difficulty?.toLowerCase()) || 'intermediate',
         status: 'draft',
-        has_attachments: templateSettings.hasAttachments || false,
-        has_css: !!templateSettings.cssStyles,
+        has_attachments: Boolean(templateSettings.hasAttachments),
+        has_css: Boolean(templateSettings.cssStyles && templateSettings.cssStyles.trim()),
         is_responsive: templateSettings.isResponsive !== false,
         tracking_enabled: templateSettings.trackingEnabled !== false,
         priority: templateSettings.priority || 'medium'
       };
+
+      // Only add landing_page_url if it's a valid URL
+      if (templateSettings.landingPageUrl && templateSettings.landingPageUrl.trim()) {
+        try {
+          new URL(templateSettings.landingPageUrl);
+          templateData.landing_page_url = templateSettings.landingPageUrl;
+        } catch {
+          console.warn('Invalid landing page URL provided, skipping field');
+        }
+      }
+      
+      console.log('Sending template data:', templateData);  // Debug log
       
       // Try to create via API first
       try {
-        const createdTemplate = await apiClient.createTemplate(newTemplateData);
-        // Add to local state
-        setTemplates(prev => [...prev, createdTemplate]);
-        alert('Template created successfully!');
+        const createdTemplate = await apiClient.createTemplate(templateData);
+        
+        // Reload all templates from API to avoid duplication
+        await loadTemplatesFromAPI();
+        
+        // Also save to localStorage for CreateCampaign component
+        const localTemplate = {
+          id: createdTemplate.id,
+          name: createdTemplate.name,
+          category: createdTemplate.category,
+          description: createdTemplate.description,
+          usageCount: 0,
+          successRate: '0%',
+          lastUsed: 'Never',
+          status: createdTemplate.status || 'Draft',
+          riskLevel: createdTemplate.difficulty || 'intermediate',
+          preview: createdTemplate.description,
+          emailSubject: createdTemplate.email_subject || '',
+          domain: createdTemplate.domain || 'custom.com',
+          difficulty: createdTemplate.difficulty || 'Intermediate',
+          rating: 0,
+          tags: [],
+          hasAttachments: createdTemplate.has_attachments || false,
+          hasCSS: createdTemplate.has_css || false,
+          isResponsive: createdTemplate.is_responsive || true,
+          thumbnail: '/placeholder.svg',
+          htmlContent: createdTemplate.html_content || '',
+          cssStyles: createdTemplate.css_styles || '',
+          senderName: createdTemplate.sender_name || '',
+          senderEmail: createdTemplate.sender_email || '',
+          landingPageUrl: createdTemplate.landing_page_url || '',
+          priority: createdTemplate.priority || 'normal',
+          trackingEnabled: createdTemplate.tracking_enabled || true,
+          isUserCreated: true, // Mark as user-created
+          created_by: createdTemplate.created_by || 'user' // Ensure created_by is set
+        };
+        
+        // Save user templates to localStorage
+        const userTemplates = JSON.parse(localStorage.getItem('hopesecure_user_templates') || '[]');
+        userTemplates.push(localTemplate);
+        localStorage.setItem('hopesecure_user_templates', JSON.stringify(userTemplates));
+        
+        alert('Template created successfully in database!');
+        
+        // Switch to user-created templates tab to show the new template
+        setActiveTemplateTab('user-created');
       } catch (apiError) {
         console.warn('API creation failed, using local storage:', apiError);
         // Fallback: Create local template object
@@ -222,13 +328,24 @@ const TemplateManagement = () => {
           senderEmail: templateSettings.senderEmail || '',
           landingPageUrl: templateSettings.landingPageUrl || '',
           priority: templateSettings.priority || 'normal',
-          trackingEnabled: templateSettings.trackingEnabled || true
+          trackingEnabled: templateSettings.trackingEnabled || true,
+          isUserCreated: true, // Mark as user-created
+          created_by: 'user' // Ensure created_by is set
         };
         
         // Add template to local data and state
         addTemplate(localTemplate);
-        setTemplates(prev => [...prev, localTemplate]);
-        alert('Template created successfully (stored locally)!');
+        setTemplates(prev => {
+          const newTemplates = [...prev, localTemplate];
+          // Save user-created templates to localStorage for CreateCampaign access
+          const userTemplates = newTemplates.filter(t => t.id > 100 || t.status === 'Draft');
+          localStorage.setItem('hopesecure_user_templates', JSON.stringify(userTemplates));
+          return newTemplates;
+        });
+        alert('Template created successfully in database!');
+        
+        // Switch to user-created templates tab to show the new template
+        setActiveTemplateTab('user-created');
       }
       
       setShowCreateDialog(false);
@@ -669,11 +786,26 @@ const TemplateManagement = () => {
 
   const categories = ["all", "Credential Phishing", "Link Click Tracking", "Attachment Download", "Data Input Form", "Social Engineering"];
 
-  const filteredTemplates = templates.filter(template => {
+  // Separate templates into pre-created and user-created
+  const preCreatedTemplates = (templates || []).filter(template => {
+    // Pre-created templates: those created by admin users or without any creator
+    return !template.created_by || template.creator_is_admin === true;
+  });
+
+  const userCreatedTemplates = (templates || []).filter(template => {
+    // User templates: those created by non-admin users
+    return template.created_by && template.creator_is_admin === false;
+  });
+
+  // Get templates based on active tab
+  const currentTemplates = activeTemplateTab === "pre-created" ? preCreatedTemplates : userCreatedTemplates;
+
+  const filteredTemplates = currentTemplates.filter(template => {
     const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          template.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || template.category === selectedCategory;
-    const matchesDifficulty = difficultyFilter === "all" || template.riskLevel === difficultyFilter;
+    const templateRisk = template.riskLevel || template.risk_level || template.difficulty || '';
+    const matchesDifficulty = difficultyFilter === "all" || templateRisk === difficultyFilter;
     
     return matchesSearch && matchesCategory && matchesDifficulty;
   }).sort((a, b) => {
@@ -690,10 +822,15 @@ const TemplateManagement = () => {
   });
 
   const getRiskColor = (risk: string) => {
+    if (!risk) return 'bg-gray-100 text-gray-800 border-gray-200';
+    
     switch (risk.toLowerCase()) {
       case 'beginner': return 'bg-green-100 text-green-800 border-green-200';
       case 'intermediate': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'expert': return 'bg-red-100 text-red-800 border-red-200';
+      case 'low': return 'bg-green-100 text-green-800 border-green-200';
+      case 'high': return 'bg-red-100 text-red-800 border-red-200';
+      case 'advanced': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -714,7 +851,17 @@ const TemplateManagement = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Advanced Template Management</h1>
-            <p className="text-gray-600 mt-1">Create, customize and deploy sophisticated phishing simulation templates</p>
+            <p className="text-gray-600 mt-1">
+              Create, customize and deploy sophisticated phishing simulation templates
+            </p>
+            <div className="flex items-center space-x-4 mt-2">
+              <div className="text-sm text-gray-500">
+                <span className="font-medium">{preCreatedTemplates.length}</span> pre-created templates
+              </div>
+              <div className="text-sm text-gray-500">
+                <span className="font-medium">{userCreatedTemplates.length}</span> user templates
+              </div>
+            </div>
           </div>
           <div className="flex space-x-2">
             <Button variant="outline" onClick={handleImportTemplate}>
@@ -1857,6 +2004,24 @@ const TemplateManagement = () => {
           </div>
         </div>
 
+        {/* Template Category Tabs */}
+        <Card className="mb-6">
+          <CardContent className="p-0">
+            <Tabs value={activeTemplateTab} onValueChange={setActiveTemplateTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 h-12 rounded-none">
+                <TabsTrigger value="pre-created" className="text-sm font-medium">
+                  <Star className="h-4 w-4 mr-2" />
+                  Pre-created Templates ({preCreatedTemplates.length})
+                </TabsTrigger>
+                <TabsTrigger value="user-created" className="text-sm font-medium">
+                  <Users className="h-4 w-4 mr-2" />
+                  User Templates ({userCreatedTemplates.length})
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardContent>
+        </Card>
+
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="p-6">
@@ -1932,9 +2097,15 @@ const TemplateManagement = () => {
                 <div className="space-y-4">
                   {/* Badges */}
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline" className={getRiskColor(template.riskLevel)}>
+                    {(template.created_by && template.creator_is_admin === false) && (
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200">
+                        <Users className="h-3 w-3 mr-1" />
+                        User Created
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className={getRiskColor(template.riskLevel || template.risk_level || template.difficulty)}>
                       <AlertTriangle className="h-3 w-3 mr-1" />
-                      {template.riskLevel} Risk
+                      {template.riskLevel || template.risk_level || template.difficulty || 'Unknown'} Risk
                     </Badge>
                     <Badge variant="outline" className={getStatusColor(template.status)}>
                       {template.status}
@@ -1994,14 +2165,18 @@ const TemplateManagement = () => {
           <Card className="text-center py-12">
             <CardContent>
               <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No templates found</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {activeTemplateTab === 'pre-created' ? 'No pre-created templates available' : 'No user templates found'}
+              </h3>
               <p className="text-gray-600 mb-4">
                 {searchTerm || selectedCategory !== "all" 
                   ? "Try adjusting your search or filter criteria" 
-                  : "Create your first phishing template to get started"
+                  : activeTemplateTab === 'pre-created' 
+                    ? "Pre-created templates are provided by the system for immediate use"
+                    : "Create your first custom template to get started"
                 }
               </p>
-              {!searchTerm && selectedCategory === "all" && (
+              {!searchTerm && selectedCategory === "all" && activeTemplateTab === 'user-created' && (
                 <Button onClick={() => setShowCreateDialog(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Your First Template
@@ -2076,7 +2251,7 @@ const TemplateManagement = () => {
                     <div className="text-sm text-gray-600">Success Rate</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">{previewTemplate.riskLevel}</div>
+                    <div className="text-2xl font-bold text-orange-600">{previewTemplate.riskLevel || previewTemplate.risk_level || previewTemplate.difficulty || 'Unknown'}</div>
                     <div className="text-sm text-gray-600">Risk Level</div>
                   </div>
                 </div>
