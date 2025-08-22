@@ -34,7 +34,7 @@ SECRET_KEY = 'django-insecure-8qf634_3urs411_&t8)c0jr31_^ly5-@#y9)dj3_li*!75o6^n
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '192.168.1.5', '*']
 
 
 # Application definition
@@ -189,6 +189,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:8081",  # Alternative Vite port  
     "http://127.0.0.1:8081",
+    "http://localhost:8080",  # Alternative development port
+    "http://127.0.0.1:8080",
+    "http://192.168.1.5:8080",  # Network IP for testing
+    "http://192.168.1.5:5173",  # Network IP with Vite port
 ]
 
 # Media files
@@ -197,3 +201,27 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Custom user model
 AUTH_USER_MODEL = 'authentication.User'
+
+# Email Configuration for Phishing Simulation - SendGrid SMTP
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'apikey'  # Always 'apikey' for SendGrid
+EMAIL_HOST_PASSWORD = os.getenv('SENDGRID_API_KEY', '')  # Your SendGrid API Key
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'security@hopesecure.com')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# Phishing Email Settings - SendGrid Enhanced
+PHISHING_EMAIL_SETTINGS = {
+    'ENABLE_DOMAIN_SPOOFING': True,
+    'MAX_EMAILS_PER_CAMPAIGN': 1000,
+    'EMAIL_DELAY_SECONDS': 2,  # Delay between emails
+    'TRACK_EMAIL_OPENS': True,
+    'TRACK_LINK_CLICKS': True,
+    'DEFAULT_SENDER_NAME': 'IT Security Team',
+    'DEFAULT_SENDER_DOMAIN': 'security-alerts.com',
+    'SENDGRID_API_KEY': os.getenv('SENDGRID_API_KEY', ''),
+    'SENDGRID_TEMPLATE_ID': os.getenv('SENDGRID_TEMPLATE_ID', ''),
+    'WEBHOOK_URL': os.getenv('SENDGRID_WEBHOOK_URL', ''),
+}

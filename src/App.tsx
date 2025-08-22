@@ -16,6 +16,7 @@ import AdvancedReports from "./pages/AdvancedReports";
 import SettingsPage from "./pages/SettingsPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import AdminMonitoringDashboard from "./components/AdminMonitoringDashboard";
+import MultiDomainCampaign from "./pages/MultiDomainCampaign";
 import NotFound from "./pages/NotFound";
 import Signin from "./pages/signin"; 
 import Signup from "./pages/signup";

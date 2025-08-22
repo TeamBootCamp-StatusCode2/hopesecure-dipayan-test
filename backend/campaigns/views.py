@@ -3,11 +3,16 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.db.models import Count, Avg
 from django.utils import timezone
+from django.conf import settings
 from .models import Campaign, CampaignTarget, CampaignEvent
 from .serializers import (
     CampaignSerializer, CampaignCreateSerializer, CampaignListSerializer,
     CampaignStatsSerializer, CampaignUpdateSerializer
 )
+from .email_service import PhishingEmailService
+from .simple_email_service import SimpleSendGridService, test_sendgrid_connection
+# Commenting out problematic import for now
+# from .sendgrid_service import SendGridPhishingService, verify_sendgrid_setup
 
 
 class CampaignListCreateView(generics.ListCreateAPIView):
@@ -68,7 +73,7 @@ def campaign_stats(request):
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def start_campaign(request, campaign_id):
-    """Start a campaign"""
+    """Start a campaign and send phishing emails"""
     try:
         campaign = Campaign.objects.get(id=campaign_id, created_by=request.user)
         
@@ -80,17 +85,184 @@ def start_campaign(request, campaign_id):
         campaign.actual_start = timezone.now()
         campaign.save()
         
-        return Response({
-            'message': 'Campaign started successfully',
-            'campaign': {
-                'id': campaign.id,
-                'status': campaign.status,
-                'actual_start': campaign.actual_start.isoformat()
+        # Initialize simplified email service for now
+        try:
+            email_service = SimpleSendGridService(campaign)
+            use_sendgrid = True
+        except Exception:
+            email_service = PhishingEmailService(campaign)
+            use_sendgrid = False
+        
+        # Get campaign targets
+        targets = CampaignTarget.objects.filter(campaign=campaign)
+        target_emails = [target.email for target in targets]
+        
+        if target_emails:
+            # Prepare template data
+            template_data = {
+                'subject': campaign.template.email_subject,
+                'html_content': campaign.template.html_content,
+                'sender_name': campaign.template.sender_name or 'IT Security Team',
+                'sender_email': campaign.template.sender_email or 'security@company.com',
+                'target_domain': getattr(campaign.template, 'domain', 'company.com'),
+                'use_spoofing': True
             }
-        }, status=status.HTTP_200_OK)
+            
+            # Send campaign emails using appropriate service
+            if use_sendgrid:
+                email_results = email_service.send_campaign_emails(target_emails, template_data)
+            else:
+                email_results = email_service.send_campaign_emails(target_emails, template_data)
+            
+            # Update campaign stats
+            campaign.emails_sent = email_results['sent']
+            campaign.target_count = len(target_emails)
+            campaign.save()
+            
+            return Response({
+                'message': 'Campaign started successfully',
+                'campaign': {
+                    'id': campaign.id,
+                    'status': campaign.status,
+                    'actual_start': campaign.actual_start.isoformat(),
+                    'emails_sent': email_results['sent'],
+                    'emails_failed': email_results['failed'],
+                    'total_targets': email_results['total']
+                }
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'No targets found for this campaign'}, status=status.HTTP_400_BAD_REQUEST)
         
     except Campaign.DoesNotExist:
         return Response({'error': 'Campaign not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': f'Failed to start campaign: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_email_configurations(request):
+    """Get available email configurations for domain mimicking"""
+    from .email_service import get_available_mimic_domains, get_spoofing_methods
+    
+    configurations = {
+        'mimic_domains': get_available_mimic_domains(),
+        'spoofing_methods': get_spoofing_methods(),
+        'domain_examples': {
+            'homograph': ['g00gle.com', 'microsft.com', 'arnazon.com'],
+            'subdomain': ['security.google-verify.com', 'login.microsoft-support.net'],
+            'tld_variation': ['gmail.net', 'outlook.org', 'facebook.co']
+        }
+    }
+    
+    return Response(configurations, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def test_email_spoofing(request):
+    """Test email spoofing configuration"""
+    target_domain = request.data.get('target_domain', 'company.com')
+    spoofing_method = request.data.get('method', 'homograph')
+    
+    email_service = PhishingEmailService()
+    mimic_domains = email_service.generate_mimic_domain(target_domain, spoofing_method)
+    
+    return Response({
+        'target_domain': target_domain,
+        'spoofing_method': spoofing_method,
+        'generated_domains': mimic_domains
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def verify_email_setup(request):
+    """Verify SendGrid configuration and email setup"""
+    
+    # Test SendGrid setup using simple service
+    sendgrid_valid, sendgrid_message = test_sendgrid_connection()
+    
+    verification_results = {
+        'sendgrid': {
+            'configured': sendgrid_valid,
+            'message': sendgrid_message,
+            'features': {
+                'email_sending': sendgrid_valid,
+                'click_tracking': sendgrid_valid,
+                'open_tracking': sendgrid_valid,
+                'templates': sendgrid_valid
+            }
+        },
+        'django_email': {
+            'backend': getattr(settings, 'EMAIL_BACKEND', 'Not configured'),
+            'host': getattr(settings, 'EMAIL_HOST', 'Not configured'),
+            'port': getattr(settings, 'EMAIL_PORT', 'Not configured'),
+        },
+        'phishing_settings': getattr(settings, 'PHISHING_EMAIL_SETTINGS', {}),
+        'recommendations': []
+    }
+    
+    # Add recommendations
+    if not sendgrid_valid:
+        verification_results['recommendations'].append("Configure SendGrid API key in environment variables")
+    
+    if not getattr(settings, 'DEFAULT_FROM_EMAIL', None):
+        verification_results['recommendations'].append("Set DEFAULT_FROM_EMAIL in settings")
+    
+    return Response(verification_results, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def send_test_email(request):
+    """Send a test email to verify configuration"""
+    
+    recipient_email = request.data.get('recipient_email')
+    if not recipient_email:
+        return Response({'error': 'recipient_email is required'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        # Initialize simple email service
+        email_service = SimpleSendGridService()
+        
+        # Test email content
+        test_content = """
+        <html>
+        <body>
+            <h2>HopeSecure Test Email</h2>
+            <p>This is a test email from your HopeSecure phishing platform.</p>
+            <p>If you received this email, your email configuration is working correctly.</p>
+            <p><a href="{{tracking_url}}">Test Link (Click to test tracking)</a></p>
+            <br>
+            <small>Sent at: {timestamp}</small>
+        </body>
+        </html>
+        """.format(timestamp=timezone.now().isoformat())
+        
+        success = email_service.send_simple_email(
+            recipient_email=recipient_email,
+            subject="HopeSecure Test Email - Configuration Verification",
+            html_content=test_content,
+            sender_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'test@hopesecure.com')
+        )
+        
+        if success:
+            return Response({
+                'success': True,
+                'message': f'Test email sent successfully to {recipient_email}'
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'success': False,
+                'message': 'Failed to send test email'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Error sending test email: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])

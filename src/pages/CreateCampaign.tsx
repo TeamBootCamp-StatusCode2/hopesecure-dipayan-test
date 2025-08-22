@@ -32,12 +32,82 @@ const CreateCampaign = () => {
     description: "",
     scheduleDate: "",
     targetEmails: [] as string[],
+    useMultipleDomains: false, // Multi-domain option
+    domainType: "corporate", // Domain type for multi-domain
+    selectedDomain: "", // Selected specific domain
+    customEmailPrefix: "noreply", // Custom email prefix
   });
+  
+  // Available domains from backend
+  const [availableDomains, setAvailableDomains] = useState<any[]>([]);
+  const [customEmailAddress, setCustomEmailAddress] = useState("");
+  const [emailInput, setEmailInput] = useState(""); // For manual email input
+
+  // Handle adding email manually
+  const handleAddEmail = () => {
+    const email = emailInput.trim();
+    if (email && !formData.targetEmails.includes(email)) {
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailRegex.test(email)) {
+        setFormData(prev => ({
+          ...prev,
+          targetEmails: [...prev.targetEmails, email]
+        }));
+        setEmailInput('');
+      } else {
+        alert('Please enter a valid email address');
+      }
+    } else if (formData.targetEmails.includes(email)) {
+      alert('Email already added');
+    }
+  };
+
+  // Handle email input on Enter key
+  const handleEmailKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddEmail();
+    }
+  };
+
+  // Load available domains
+  const loadAvailableDomains = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/campaigns/test-domains/', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Domains loaded:', data);
+        // Format domains for frontend
+        const formattedDomains = data.domains.map((domain: any) => ({
+          id: domain.id,
+          name: domain.name,
+          domain_type: domain.domain_type,
+          status: domain.status,
+          success_rate: 85, // Default value
+          click_rate: 12, // Default value
+          display_name: `${domain.name} (${domain.domain_type.charAt(0).toUpperCase() + domain.domain_type.slice(1)})`
+        }));
+        setAvailableDomains(formattedDomains);
+      } else {
+        console.error('Failed to load domains:', response.status);
+      }
+    } catch (error) {
+      console.error('Error loading domains:', error);
+    }
+  };
 
   // Load user-created templates on component mount
   useEffect(() => {
     loadUserTemplates();
     loadEmployees();
+    loadAvailableDomains(); // Load domains
     
     // Check if editing a draft campaign
     if (location.state?.editCampaign) {
@@ -47,6 +117,10 @@ const CreateCampaign = () => {
         description: campaign.description || "",
         scheduleDate: campaign.scheduled_date || "",
         targetEmails: campaign.target_emails || [],
+        useMultipleDomains: campaign.use_multiple_domains || false,
+        domainType: campaign.domain_type || "corporate",
+        selectedDomain: campaign.domain_id ? campaign.domain_id.toString() : "",
+        customEmailPrefix: campaign.custom_email_prefix || "noreply",
       });
       setCampaignType(campaign.campaign_type || "");
       setSelectedTemplate(campaign.template_id || null);
@@ -158,7 +232,7 @@ const CreateCampaign = () => {
   ];
 
   // Handle form field changes
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -224,13 +298,36 @@ const CreateCampaign = () => {
 
   // Handle form submission
   const handleSubmit = async (isDraft: boolean = false) => {
+    // Basic validation
     if (!formData.name || !campaignType || !selectedTemplate) {
-      alert('Please fill in all required fields');
+      alert('Please fill in all required fields (Name, Type, Template)');
+      return;
+    }
+
+    if (formData.targetEmails.length === 0) {
+      alert('Please add at least one target email address');
+      return;
+    }
+
+    // Additional validation for multi-domain campaigns
+    if (formData.useMultipleDomains && !formData.selectedDomain) {
+      alert('Please select a domain for custom domain campaigns');
       return;
     }
 
     setIsSubmitting(true);
+    
     try {
+      // Generate custom email address if using custom domain
+      let senderEmail = 'noreply@example.com';
+      if (formData.useMultipleDomains && formData.selectedDomain) {
+        const selectedDomainData = availableDomains.find(d => d.id.toString() === formData.selectedDomain);
+        if (selectedDomainData) {
+          senderEmail = `${formData.customEmailPrefix}@${selectedDomainData.name}`;
+        }
+      }
+
+      // Prepare campaign data for launch
       const campaignData = {
         name: formData.name,
         description: formData.description,
@@ -239,19 +336,76 @@ const CreateCampaign = () => {
         scheduled_date: formData.scheduleDate || null,
         target_emails: formData.targetEmails.filter(email => email.trim()),
         status: isDraft ? 'draft' : 'scheduled',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        // Custom domain specific fields
+        use_custom_domain: formData.useMultipleDomains,
+        domain_id: formData.useMultipleDomains ? parseInt(formData.selectedDomain) : null,
+        sender_email: senderEmail,
+        custom_email_prefix: formData.customEmailPrefix,
+        is_multi_domain: formData.useMultipleDomains
       };
 
-      console.log('Campaign data being sent:', campaignData); // Debug log
+      console.log('Launching campaign with data:', campaignData);
 
-      // Try to save via API
-      try {
-        const campaign = await apiClient.createCampaign(campaignData);
-        alert(`Campaign ${isDraft ? 'saved as draft' : 'created'} successfully!`);
-        navigate('/dashboard');
-      } catch (apiError) {
-        console.warn('API save failed, saving locally:', apiError);
-        // Fallback: save to localStorage
+      if (!isDraft) {
+        // First validate campaign setup
+        const validationResponse = await fetch('http://localhost:8000/api/campaigns/validate/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(campaignData)
+        });
+
+        if (validationResponse.ok) {
+          const validationResult = await validationResponse.json();
+          
+          if (!validationResult.validation.ready_to_launch) {
+            const issues = validationResult.validation.issues.join('\\n');
+            alert(`Campaign validation failed:\\n${issues}`);
+            setIsSubmitting(false);
+            return;
+          }
+          
+          // Show warnings if any
+          if (validationResult.validation.warnings.length > 0) {
+            const warnings = validationResult.validation.warnings.join('\\n');
+            const proceed = confirm(`Campaign has warnings:\\n${warnings}\\n\\nDo you want to proceed?`);
+            if (!proceed) {
+              setIsSubmitting(false);
+              return;
+            }
+          }
+        }
+
+        // Launch campaign
+        const launchResponse = await fetch('http://localhost:8000/api/campaigns/launch/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(campaignData)
+        });
+
+        if (launchResponse.ok) {
+          const launchResult = await launchResponse.json();
+          const results = launchResult.results;
+          
+          alert(`🚀 Campaign launched successfully!\\n\\n` +
+                `📊 Results:\\n` +
+                `• Total emails: ${results.total_targets}\\n` +
+                `• Successful sends: ${results.successful_sends}\\n` +
+                `• Failed sends: ${results.failed_sends}\\n` +
+                `• Success rate: ${results.success_rate}%\\n\\n` +
+                `📧 Sender: ${results.sender_email}\\n` +
+                `${results.domain_info ? `🌐 Domain: ${results.domain_info.name}` : ''}`);
+          
+          navigate('/dashboard');
+        } else {
+          throw new Error(`Campaign launch failed: ${launchResponse.status}`);
+        }
+      } else {
+        // Save as draft (fallback to localStorage)
         const existingCampaigns = JSON.parse(localStorage.getItem('hopesecure_campaigns') || '[]');
         const newCampaign = {
           id: Date.now(),
@@ -259,12 +413,13 @@ const CreateCampaign = () => {
         };
         existingCampaigns.push(newCampaign);
         localStorage.setItem('hopesecure_campaigns', JSON.stringify(existingCampaigns));
-        alert(`Campaign ${isDraft ? 'saved as draft' : 'created'} successfully (locally)!`);
+        alert(`📝 Campaign saved as draft!\\nSender Email: ${senderEmail}`);
         navigate('/dashboard');
       }
+      
     } catch (error) {
-      console.error('Error creating campaign:', error);
-      alert('Error creating campaign. Please try again.');
+      console.error('Campaign error:', error);
+      alert(`❌ Campaign failed: ${error.message || 'Unknown error occurred'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -358,6 +513,101 @@ const CreateCampaign = () => {
                     onChange={(e) => handleInputChange('scheduleDate', e.target.value)}
                   />
                 </div>
+              </div>
+
+              {/* Multi-Domain Advanced Options */}
+              <div className="space-y-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="use-multiple-domains"
+                    className="rounded"
+                    checked={formData.useMultipleDomains}
+                    onChange={(e) => handleInputChange('useMultipleDomains', e.target.checked)}
+                  />
+                  <Label htmlFor="use-multiple-domains" className="text-sm font-medium text-blue-700">
+                    🌐 Use Custom Domain Extensions (Advanced)
+                  </Label>
+                </div>
+                
+                {formData.useMultipleDomains && (
+                  <div className="space-y-3 ml-6">
+                    <div>
+                      <Label className="text-sm text-blue-600">Select Domain</Label>
+                      <Select value={formData.selectedDomain} onValueChange={(value) => handleInputChange('selectedDomain', value)}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Choose a domain from your configured domains" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableDomains.length > 0 ? (
+                            availableDomains.map((domain) => (
+                              <SelectItem key={domain.id} value={domain.id.toString()}>
+                                <div>
+                                  <div className="font-medium">{domain.name}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {domain.domain_type} • Success: {domain.success_rate}%
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="no-domains" disabled>
+                              <div className="text-muted-foreground">
+                                <div>No domains available.</div>
+                                <div className="text-xs">Add domains in Super Admin panel first.</div>
+                              </div>
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {formData.selectedDomain && (
+                      <div>
+                        <Label className="text-sm text-blue-600">Custom Email Prefix</Label>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <input
+                            type="text"
+                            value={formData.customEmailPrefix}
+                            onChange={(e) => handleInputChange('customEmailPrefix', e.target.value)}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            placeholder="noreply"
+                          />
+                          <span className="text-sm text-muted-foreground">@</span>
+                          <span className="text-sm font-medium text-blue-600">
+                            {availableDomains.find(d => d.id.toString() === formData.selectedDomain)?.name || 'domain.com'}
+                          </span>
+                        </div>
+                        <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded">
+                          <p className="text-sm font-medium text-green-700">✅ Email Preview:</p>
+                          <p className="text-sm text-green-600 font-mono">
+                            {formData.customEmailPrefix}@{availableDomains.find(d => d.id.toString() === formData.selectedDomain)?.name || 'domain.com'}
+                          </p>
+                          <p className="text-xs text-green-600 mt-1">
+                            This email address will be used as sender for all campaign emails
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="bg-blue-100 p-3 rounded text-sm text-blue-700">
+                      <strong>🚀 Custom Domain Features:</strong>
+                      <ul className="mt-1 space-y-1">
+                        <li>• Use your own verified domains</li>
+                        <li>• Create custom sender email addresses</li>
+                        <li>• Advanced domain reputation management</li>
+                        <li>• Real-time delivery tracking</li>
+                      </ul>
+                      {availableDomains.length === 0 && (
+                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                          <p className="text-yellow-700 text-xs">
+                            <strong>📝 Note:</strong> No domains found. Please add domains in the Super Admin panel first to use this feature.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -484,7 +734,7 @@ const CreateCampaign = () => {
               <CardDescription>Select who will receive this campaign</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-3 gap-4">
                 <div className="border border-border rounded-lg p-4 text-center">
                   <Users className="h-8 w-8 text-security-blue mx-auto mb-2" />
                   <h3 className="font-medium mb-2">Select from Employees</h3>
@@ -496,7 +746,26 @@ const CreateCampaign = () => {
                 </div>
 
                 <div className="border border-border rounded-lg p-4 text-center">
-                  <Users className="h-8 w-8 text-security-blue mx-auto mb-2" />
+                  <Mail className="h-8 w-8 text-security-blue mx-auto mb-2" />
+                  <h3 className="font-medium mb-2">Add Single Email</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Manually add individual emails</p>
+                  <div className="flex space-x-1">
+                    <input
+                      type="email"
+                      placeholder="user@company.com"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      onKeyPress={handleEmailKeyPress}
+                      className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+                    />
+                    <Button variant="outline" size="sm" onClick={handleAddEmail}>
+                      Add
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="border border-border rounded-lg p-4 text-center">
+                  <Upload className="h-8 w-8 text-security-blue mx-auto mb-2" />
                   <h3 className="font-medium mb-2">Upload CSV File</h3>
                   <p className="text-sm text-muted-foreground mb-3">Upload a CSV with employee emails</p>
                   <Button 
@@ -511,9 +780,48 @@ const CreateCampaign = () => {
               </div>
 
               <div>
-                <Label htmlFor="email-list">Target Email Addresses</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="email-list">Target Email Addresses</Label>
+                  <span className="text-sm text-muted-foreground">
+                    {formData.targetEmails.length} email{formData.targetEmails.length !== 1 ? 's' : ''} added
+                  </span>
+                </div>
                 
-                {/* Email Pills Container - Only from Employee Selection */}
+                {/* Bulk Email Input */}
+                <div className="mt-2 mb-3">
+                  <details className="group">
+                    <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800">
+                      📝 Add Multiple Emails (Bulk Input)
+                    </summary>
+                    <div className="mt-2 p-3 border border-blue-200 rounded-lg bg-blue-50">
+                      <Label className="text-sm text-blue-700">Paste multiple emails (comma or line separated)</Label>
+                      <textarea
+                        placeholder="user1@company.com, user2@company.com&#10;user3@company.com"
+                        className="w-full mt-1 p-2 text-sm border border-gray-300 rounded resize-none h-20"
+                        onBlur={(e) => {
+                          const emails = e.target.value
+                            .split(/[,\n]/)
+                            .map(email => email.trim())
+                            .filter(email => email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+                            .filter(email => !formData.targetEmails.includes(email));
+                          
+                          if (emails.length > 0) {
+                            setFormData(prev => ({
+                              ...prev,
+                              targetEmails: [...prev.targetEmails, ...emails]
+                            }));
+                            e.target.value = '';
+                          }
+                        }}
+                      />
+                      <p className="text-xs text-blue-600 mt-1">
+                        Separate emails with commas or new lines. Invalid emails will be ignored.
+                      </p>
+                    </div>
+                  </details>
+                </div>
+                
+                {/* Email Pills Container */}
                 <div className="border border-border rounded-lg p-3 min-h-[100px] mt-1 bg-background">
                   {formData.targetEmails.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
@@ -535,9 +843,15 @@ const CreateCampaign = () => {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-muted-foreground text-sm">
-                      No email addresses added yet. Select from employees above.
-                    </p>
+                    <div className="text-center py-4">
+                      <Mail className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-muted-foreground text-sm mb-2">
+                        No email addresses added yet
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Add emails manually, select from employees, or upload CSV
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -561,9 +875,9 @@ const CreateCampaign = () => {
               size="lg"
               className="order-1 sm:order-2"
               onClick={() => handleSubmit(false)}
-              disabled={isSubmitting}
+              disabled={isSubmitting || formData.targetEmails.length === 0}
             >
-              {isSubmitting ? 'Creating...' : 'Launch Campaign'}
+              {isSubmitting ? '🚀 Launching...' : `🚀 Launch Campaign (${formData.targetEmails.length} targets)`}
             </Button>
           </div>
         </form>

@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from templates.models import Template
+from .domain_models import EmailDomain
 
 User = get_user_model()
 
@@ -27,6 +28,7 @@ class Campaign(models.Model):
     description = models.TextField(blank=True)
     campaign_type = models.CharField(max_length=50, choices=CAMPAIGN_TYPE_CHOICES)
     template = models.ForeignKey(Template, on_delete=models.CASCADE, related_name='campaigns')
+    domain = models.ForeignKey(EmailDomain, on_delete=models.CASCADE, related_name='campaigns', null=True, blank=True)  # Add domain field
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     target_count = models.IntegerField(default=0)
     emails_sent = models.IntegerField(default=0)

@@ -7,3 +7,11 @@ python-dotenv==1.0.0
 channels==4.0.0
 channels-redis==4.2.0
 asgiref==3.7.2
+
+# Email Services
+sendgrid==6.11.0
+email-validator==2.2.0
+
+# Additional utilities
+requests==2.32.3
+beautifulsoup4==4.12.3

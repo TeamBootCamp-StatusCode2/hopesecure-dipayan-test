@@ -56,6 +56,7 @@ class CampaignSerializer(serializers.ModelSerializer):
 
 class CampaignCreateSerializer(serializers.ModelSerializer):
     template_id = serializers.IntegerField(write_only=True)
+    domain_id = serializers.IntegerField(write_only=True, required=False)  # Add domain_id field
     target_emails = serializers.ListField(
         child=serializers.EmailField(),
         write_only=True,
@@ -65,7 +66,7 @@ class CampaignCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Campaign
         fields = [
-            'name', 'description', 'campaign_type', 'template_id', 'status',
+            'name', 'description', 'campaign_type', 'template_id', 'domain_id', 'status',
             'scheduled_start', 'scheduled_end', 'send_reminder', 'reminder_delay_hours',
             'track_clicks', 'track_downloads', 'capture_credentials', 'redirect_url',
             'target_emails'
@@ -73,8 +74,10 @@ class CampaignCreateSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         from templates.models import Template
+        from .domain_models import EmailDomain
         
         template_id = validated_data.pop('template_id')
+        domain_id = validated_data.pop('domain_id', None)
         target_emails = validated_data.pop('target_emails', [])
         
         try:
@@ -82,7 +85,15 @@ class CampaignCreateSerializer(serializers.ModelSerializer):
         except Template.DoesNotExist:
             raise serializers.ValidationError({'template_id': 'Template not found'})
         
-        campaign = Campaign.objects.create(template=template, **validated_data)
+        # Get domain if provided
+        domain = None
+        if domain_id:
+            try:
+                domain = EmailDomain.objects.get(id=domain_id)
+            except EmailDomain.DoesNotExist:
+                raise serializers.ValidationError({'domain_id': 'Domain not found'})
+        
+        campaign = Campaign.objects.create(template=template, domain=domain, **validated_data)
         
         # Create campaign targets
         for email in target_emails:

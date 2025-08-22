@@ -11,11 +11,14 @@ import {
   BarChart3,
   AlertTriangle,
   Database,
-  Monitor
+  Monitor,
+  Globe,
+  Server
 } from "lucide-react";
 import { apiClient } from '@/lib/api';
 import LogoutButton from '@/components/LogoutButton';
 import AdminMonitoringDashboard from '@/components/AdminMonitoringDashboard';
+import SuperAdminDomainManager from '@/components/SuperAdminDomainManager';
 
 interface SystemStats {
   total_organizations: number;
@@ -46,7 +49,7 @@ const SuperAdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'organizations' | 'users' | 'system' | 'monitoring'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'organizations' | 'users' | 'domains' | 'system' | 'monitoring'>('overview');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -107,6 +110,7 @@ const SuperAdminDashboard: React.FC = () => {
             { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'organizations', label: 'Organizations', icon: Building2 },
             { id: 'users', label: 'Users', icon: Users },
+            { id: 'domains', label: 'Domain DNS', icon: Globe },
             { id: 'monitoring', label: 'Monitoring', icon: Monitor },
             { id: 'system', label: 'System', icon: Settings }
           ].map((tab) => (
@@ -306,6 +310,15 @@ const SuperAdminDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* Domain DNS Tab */}
+        {activeTab === 'domains' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-lg">
+              <SuperAdminDomainManager />
+            </div>
+          </div>
+        )}
+
         {/* System Tab */}
         {activeTab === 'system' && (
           <div className="space-y-6">
@@ -315,20 +328,29 @@ const SuperAdminDashboard: React.FC = () => {
                 <CardDescription className="text-gray-400">Administrative tools and system controls</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button className="p-6 h-auto flex-col items-start bg-blue-600/20 border-blue-500/30 hover:bg-blue-600/30">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Button 
+                    onClick={() => setActiveTab('domains')}
+                    className="p-6 h-auto flex-col items-start bg-blue-600/20 border-blue-500/30 hover:bg-blue-600/30"
+                  >
+                    <Globe className="h-6 w-6 mb-2" />
+                    <h3 className="font-semibold">Domain DNS Config</h3>
+                    <p className="text-sm text-gray-400 text-left">Manage email domains and DNS settings</p>
+                  </Button>
+                  
+                  <Button className="p-6 h-auto flex-col items-start bg-green-600/20 border-green-500/30 hover:bg-green-600/30">
                     <Users className="h-6 w-6 mb-2" />
                     <h3 className="font-semibold">User Management</h3>
                     <p className="text-sm text-gray-400 text-left">Manage users across all organizations</p>
                   </Button>
                   
-                  <Button className="p-6 h-auto flex-col items-start bg-green-600/20 border-green-500/30 hover:bg-green-600/30">
+                  <Button className="p-6 h-auto flex-col items-start bg-purple-600/20 border-purple-500/30 hover:bg-purple-600/30">
                     <Building2 className="h-6 w-6 mb-2" />
                     <h3 className="font-semibold">Organization Control</h3>
                     <p className="text-sm text-gray-400 text-left">Monitor and manage organizations</p>
                   </Button>
                   
-                  <Button className="p-6 h-auto flex-col items-start bg-purple-600/20 border-purple-500/30 hover:bg-purple-600/30">
+                  <Button className="p-6 h-auto flex-col items-start bg-orange-600/20 border-orange-500/30 hover:bg-orange-600/30">
                     <BarChart3 className="h-6 w-6 mb-2" />
                     <h3 className="font-semibold">Analytics</h3>
                     <p className="text-sm text-gray-400 text-left">System-wide analytics and reports</p>
@@ -338,6 +360,12 @@ const SuperAdminDashboard: React.FC = () => {
                     <AlertTriangle className="h-6 w-6 mb-2" />
                     <h3 className="font-semibold">Security Monitoring</h3>
                     <p className="text-sm text-gray-400 text-left">Monitor security across all organizations</p>
+                  </Button>
+                  
+                  <Button className="p-6 h-auto flex-col items-start bg-teal-600/20 border-teal-500/30 hover:bg-teal-600/30">
+                    <Server className="h-6 w-6 mb-2" />
+                    <h3 className="font-semibold">System Health</h3>
+                    <p className="text-sm text-gray-400 text-left">Monitor system status and performance</p>
                   </Button>
                 </div>
               </CardContent>
