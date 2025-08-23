@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 import { apiClient } from "@/lib/api";
 import { 
@@ -23,22 +24,31 @@ import {
   Home,
   RotateCcw,
   Square,
-  Crown
+  Crown,
+  Globe,
+  Server
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import CampaignNotification from "@/components/CampaignNotification";
+import UserDomainManager from "@/components/UserDomainManager";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [recentCampaigns, setRecentCampaigns] = useState([]);
   const [draftCampaigns, setDraftCampaigns] = useState([]);
   const [publishedCampaigns, setPublishedCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCampaignNotification, setShowCampaignNotification] = useState(false);
+  const [activeTab, setActiveTab] = useState('campaigns');
   const { campaigns, hasActiveCampaigns, hasAnyCampaigns, loading: campaignsLoading } = useCampaigns();
+
+  // Get organization ID from URL params for super admin
+  const orgId = searchParams.get('org');
+  const isSuperAdminView = orgId && user?.is_superuser;
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -174,8 +184,15 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Security Campaign Dashboard</h1>
-              <p className="text-gray-300">Monitor and manage your cybersecurity awareness campaigns</p>
+              <h1 className="text-3xl font-bold mb-2">
+                {isSuperAdminView ? 'Super Admin - Organization Management' : 'Security Campaign Dashboard'}
+              </h1>
+              <p className="text-gray-300">
+                {isSuperAdminView 
+                  ? `Managing domains and email accounts for Organization ID: ${orgId}` 
+                  : 'Monitor and manage your cybersecurity awareness campaigns'
+                }
+              </p>
             </div>
             <div className="flex gap-3">
                             <Button 
@@ -213,25 +230,54 @@ const Dashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
-            <Card key={index} className="border border-border hover:shadow-card transition-smooth">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <stat.icon className={`h-8 w-8 ${stat.color}`} />
-                  <Badge variant="secondary" className="text-xs">
-                    {stat.change}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
-                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* Navigation Tabs */}
+        <Tabs value={isSuperAdminView ? 'domains' : activeTab} onValueChange={setActiveTab} className="w-full">
+          {isSuperAdminView ? (
+            <TabsList className="grid w-full grid-cols-1 mb-8">
+              <TabsTrigger value="domains" className="flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                Domain & Email Management
+              </TabsTrigger>
+            </TabsList>
+          ) : (
+            <TabsList className="grid w-full grid-cols-3 mb-8">
+              <TabsTrigger value="campaigns" className="flex items-center gap-2">
+                <Target className="h-4 w-4" />
+                Campaign Management
+              </TabsTrigger>
+              <TabsTrigger value="domains" className="flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                Domain & Email
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Analytics
+              </TabsTrigger>
+            </TabsList>
+          )}
+
+          {/* Campaign Management Tab - Only for regular users */}
+          {!isSuperAdminView && (
+            <TabsContent value="campaigns" className="space-y-8">
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {stats.map((stat, index) => (
+                <Card key={index} className="border border-border hover:shadow-card transition-smooth">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <stat.icon className={`h-8 w-8 ${stat.color}`} />
+                      <Badge variant="secondary" className="text-xs">
+                        {stat.change}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
+                      <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
 
         {/* Recent Campaigns */}
         <Card className="mb-8">
@@ -694,6 +740,14 @@ const Dashboard = () => {
             </CardHeader>
           </Card>
 
+          <Card className="border border-border hover:shadow-card transition-smooth cursor-pointer" onClick={() => setActiveTab('domains')}>
+            <CardHeader className="text-center">
+              <Globe className="h-12 w-12 text-indigo-600 mx-auto mb-4" />
+              <CardTitle>Domain & Email Management</CardTitle>
+              <CardDescription>Manage domains and DNS settings</CardDescription>
+            </CardHeader>
+          </Card>
+
           <Card className="border border-border hover:shadow-card transition-smooth cursor-pointer" onClick={() => navigate('/settings')}>
             <CardHeader className="text-center">
               <Settings className="h-12 w-12 text-gray-600 mx-auto mb-4" />
@@ -702,6 +756,38 @@ const Dashboard = () => {
             </CardHeader>
           </Card>
         </div>
+          </TabsContent>
+          )}
+
+          {/* Domain & Email Management Tab */}
+          <TabsContent value="domains" className="space-y-6">
+            <UserDomainManager organizationId={orgId} />
+          </TabsContent>
+
+          {/* Analytics Tab - Only for regular users */}
+          {!isSuperAdminView && (
+            <TabsContent value="analytics" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Campaign Analytics
+                  </CardTitle>
+                  <CardDescription>
+                    Comprehensive analytics and reporting for your security campaigns
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <BarChart3 className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                    <h3 className="text-lg font-semibold text-gray-600 mb-2">Advanced Analytics Coming Soon</h3>
+                    <p className="text-gray-500">Detailed campaign performance metrics and insights will be available here</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+        </Tabs>
       </div>
 
       {/* Campaign Notification Modal */}

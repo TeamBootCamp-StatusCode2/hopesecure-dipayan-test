@@ -19,8 +19,6 @@ import {
 import { apiClient } from '@/lib/api';
 import LogoutButton from '@/components/LogoutButton';
 import AdminMonitoringDashboard from '@/components/AdminMonitoringDashboard';
-import SuperAdminDomainManager from '@/components/SuperAdminDomainManager';
-import EmailDashboard from '@/pages/EmailDashboard';
 
 interface SystemStats {
   total_organizations: number;
@@ -53,7 +51,7 @@ const SuperAdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'organizations' | 'users' | 'emails' | 'domains' | 'system' | 'monitoring'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'organizations' | 'users' | 'system' | 'monitoring'>('overview');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -114,8 +112,6 @@ const SuperAdminDashboard: React.FC = () => {
             { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'organizations', label: 'Organizations', icon: Building2 },
             { id: 'users', label: 'Users', icon: Users },
-            { id: 'emails', label: 'Email Management', icon: Mail },
-            { id: 'domains', label: 'Domain DNS', icon: Globe },
             { id: 'monitoring', label: 'Monitoring', icon: Monitor },
             { id: 'system', label: 'System', icon: Settings }
           ].map((tab) => (
@@ -256,6 +252,15 @@ const SuperAdminDashboard: React.FC = () => {
                           </div>
                         </div>
                         <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-white border-white/20"
+                            onClick={() => window.open(`/dashboard?org=${org.id}`, '_blank')}
+                          >
+                            <Globe className="h-4 w-4 mr-1" />
+                            Manage Domains
+                          </Button>
                           <Button size="sm" variant="outline" className="text-white border-white/20">
                             <Eye className="h-4 w-4 mr-1" />
                             View Details
@@ -325,24 +330,6 @@ const SuperAdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Email Management Tab */}
-        {activeTab === 'emails' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-lg">
-              <EmailDashboard />
-            </div>
-          </div>
-        )}
-
-        {/* Domain DNS Tab */}
-        {activeTab === 'domains' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-lg">
-              <SuperAdminDomainManager />
-            </div>
-          </div>
-        )}
-
         {/* System Tab */}
         {activeTab === 'system' && (
           <div className="space-y-6">
@@ -353,24 +340,6 @@ const SuperAdminDashboard: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <Button 
-                    onClick={() => setActiveTab('domains')}
-                    className="p-6 h-auto flex-col items-start bg-blue-600/20 border-blue-500/30 hover:bg-blue-600/30"
-                  >
-                    <Globe className="h-6 w-6 mb-2" />
-                    <h3 className="font-semibold">Domain DNS Config</h3>
-                    <p className="text-sm text-gray-400 text-left">Manage email domains and DNS settings</p>
-                  </Button>
-                  
-                  <Button 
-                    onClick={() => setActiveTab('emails')}
-                    className="p-6 h-auto flex-col items-start bg-indigo-600/20 border-indigo-500/30 hover:bg-indigo-600/30"
-                  >
-                    <Mail className="h-6 w-6 mb-2" />
-                    <h3 className="font-semibold">Email Management</h3>
-                    <p className="text-sm text-gray-400 text-left">Configure email accounts and sender addresses</p>
-                  </Button>
-                  
                   <Button className="p-6 h-auto flex-col items-start bg-green-600/20 border-green-500/30 hover:bg-green-600/30">
                     <Users className="h-6 w-6 mb-2" />
                     <h3 className="font-semibold">User Management</h3>

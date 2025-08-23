@@ -8,12 +8,34 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
+from rest_framework.authtoken.models import Token
 import json
 
 from .domain_service import DomainDNSManager, get_sendgrid_domain_suggestions, validate_domain_name
 from .domain_models import EmailDomain
 
 User = get_user_model()
+
+def get_user_from_token(request):
+    """Extract user from token in Authorization header"""
+    auth_header = request.META.get('HTTP_AUTHORIZATION')
+    if auth_header and auth_header.startswith('Token '):
+        token_key = auth_header.split(' ')[1]
+        try:
+            token = Token.objects.get(key=token_key)
+            return token.user
+        except Token.DoesNotExist:
+            pass
+    
+    # Fallback: try to get user from session (for testing)
+    if hasattr(request, 'user') and request.user.is_authenticated:
+        return request.user
+    
+    # Last fallback: get first superuser (for development/testing)
+    try:
+        return User.objects.filter(is_superuser=True).first()
+    except User.DoesNotExist:
+        return None
 
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
@@ -24,21 +46,30 @@ def simple_domain_api(request):
     POST: Create domain
     """
     try:
-        # Get user from session or token (simplified)
-        try:
-            user = User.objects.get(is_superuser=True)  # Use first superuser for testing
-        except User.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'No user found'}, status=401)
+        # Get user from token
+        user = get_user_from_token(request)
+        if not user:
+            return JsonResponse({'success': False, 'message': 'Authentication required'}, status=401)
         
         dns_manager = DomainDNSManager()
         
         if request.method == 'GET':
             # List domains
+            print(f"=== API GET DOMAINS DEBUG ===")
+            print(f"Request user: {user.username} (ID: {user.id})")
+            print(f"User is_superuser: {user.is_superuser}")
+            
             domains = dns_manager.list_user_domains(user)
-            return JsonResponse({
+            print(f"API returning {len(domains)} domains:")
+            for domain in domains:
+                print(f"  - {domain['name']} (ID: {domain['id']})")
+            
+            response_data = {
                 'success': True,
                 'domains': domains
-            })
+            }
+            print(f"Final API response: {response_data}")
+            return JsonResponse(response_data)
         
         elif request.method == 'POST':
             # Create domain
@@ -90,6 +121,11 @@ def simple_domain_verify(request, domain_id):
     Verify domain DNS records
     """
     try:
+        # Get user from token
+        user = get_user_from_token(request)
+        if not user:
+            return JsonResponse({'success': False, 'message': 'Authentication required'}, status=401)
+            
         dns_manager = DomainDNSManager()
         success, result = dns_manager.verify_domain_dns(domain_id)
         
@@ -115,6 +151,11 @@ def simple_domain_dns_records(request, domain_id):
     Get DNS records for domain
     """
     try:
+        # Get user from token
+        user = get_user_from_token(request)
+        if not user:
+            return JsonResponse({'success': False, 'message': 'Authentication required'}, status=401)
+            
         domain = EmailDomain.objects.get(id=domain_id)
         dns_manager = DomainDNSManager()
         dns_records = dns_manager.get_required_dns_records(domain)
@@ -137,7 +178,11 @@ def simple_domain_delete(request, domain_id):
     Delete domain
     """
     try:
-        user = User.objects.get(is_superuser=True)  # Use first superuser for testing
+        # Get user from token
+        user = get_user_from_token(request)
+        if not user:
+            return JsonResponse({'success': False, 'message': 'Authentication required'}, status=401)
+            
         dns_manager = DomainDNSManager()
         success, message = dns_manager.delete_domain(domain_id, user)
         

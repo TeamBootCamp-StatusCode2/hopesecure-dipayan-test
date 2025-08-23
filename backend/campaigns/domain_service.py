@@ -254,9 +254,38 @@ class DomainDNSManager:
     
     def list_user_domains(self, user):
         """
-        List all domains for a user
+        List all domains for a user's organization
         """
-        domains = EmailDomain.objects.filter(created_by=user).order_by('-created_at')
+        print(f"DEBUG: list_user_domains called for user: {user.username} (ID: {user.id})")
+        print(f"DEBUG: user.is_superuser: {user.is_superuser}")
+        print(f"DEBUG: hasattr(user, 'organization'): {hasattr(user, 'organization')}")
+        if hasattr(user, 'organization'):
+            print(f"DEBUG: user.organization: {user.organization}")
+        
+        if user.is_superuser:
+            # Super admin can see all domains
+            print("DEBUG: User is superuser, fetching all domains")
+            domains = EmailDomain.objects.all().order_by('-created_at')
+        elif hasattr(user, 'organization') and user.organization:
+            # Regular users see domains from their organization + domains created by superadmins (no org)
+            print(f"DEBUG: User has organization {user.organization}, fetching org domains + superadmin domains")
+            from django.db.models import Q
+            domains = EmailDomain.objects.filter(
+                Q(created_by__organization=user.organization) |  # Same organization
+                Q(created_by__organization__isnull=True, created_by__is_superuser=True)  # Superadmin domains
+            ).order_by('-created_at')
+        else:
+            # Users without organization see only their own domains + superadmin domains
+            print(f"DEBUG: User has no organization, fetching own domains + superadmin domains")
+            from django.db.models import Q
+            domains = EmailDomain.objects.filter(
+                Q(created_by=user) |  # Own domains
+                Q(created_by__organization__isnull=True, created_by__is_superuser=True)  # Superadmin domains
+            ).order_by('-created_at')
+        
+        print(f"DEBUG: Found {domains.count()} domains")
+        for domain in domains:
+            print(f"DEBUG: Domain: {domain.name}, created_by: {domain.created_by}")
         
         domain_list = []
         for domain in domains:
@@ -278,7 +307,19 @@ class DomainDNSManager:
         Delete a domain and all associated records
         """
         try:
-            domain = EmailDomain.objects.get(id=domain_id, created_by=user)
+            if user.is_super_admin:
+                # Super admin can delete any domain
+                domain = EmailDomain.objects.get(id=domain_id)
+            elif user.organization:
+                # Regular users can only delete domains from their organization
+                domain = EmailDomain.objects.get(
+                    id=domain_id, 
+                    created_by__organization=user.organization
+                )
+            else:
+                # Users without organization can only delete their own domains
+                domain = EmailDomain.objects.get(id=domain_id, created_by=user)
+            
             domain_name = domain.name
             domain.delete()
             
@@ -292,7 +333,18 @@ class DomainDNSManager:
         Update domain settings
         """
         try:
-            domain = EmailDomain.objects.get(id=domain_id, created_by=user)
+            if user.is_super_admin:
+                # Super admin can update any domain
+                domain = EmailDomain.objects.get(id=domain_id)
+            elif user.organization:
+                # Regular users can only update domains from their organization
+                domain = EmailDomain.objects.get(
+                    id=domain_id, 
+                    created_by__organization=user.organization
+                )
+            else:
+                # Users without organization can only update their own domains
+                domain = EmailDomain.objects.get(id=domain_id, created_by=user)
             
             # Update allowed settings
             if 'max_emails_per_day' in settings_data:

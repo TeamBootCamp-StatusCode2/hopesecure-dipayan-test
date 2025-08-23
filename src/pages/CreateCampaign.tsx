@@ -384,6 +384,8 @@ const CreateCampaign = () => {
         }
 
         // Launch campaign
+        console.log('🚀 About to launch campaign with payload:', JSON.stringify(campaignData, null, 2));
+        
         const launchResponse = await fetch('http://localhost:8000/api/campaigns/launch/', {
           method: 'POST',
           headers: {
@@ -392,8 +394,12 @@ const CreateCampaign = () => {
           body: JSON.stringify(campaignData)
         });
 
+        console.log('📨 Launch response status:', launchResponse.status);
+        console.log('📨 Launch response headers:', Object.fromEntries(launchResponse.headers.entries()));
+
         if (launchResponse.ok) {
           const launchResult = await launchResponse.json();
+          console.log('✅ Launch result:', launchResult);
           const results = launchResult.results;
           
           alert(`🚀 Campaign launched successfully!\\n\\n` +
@@ -407,7 +413,9 @@ const CreateCampaign = () => {
           
           navigate('/dashboard');
         } else {
-          throw new Error(`Campaign launch failed: ${launchResponse.status}`);
+          const errorText = await launchResponse.text();
+          console.error('❌ Launch failed response:', errorText);
+          throw new Error(`Campaign launch failed: ${launchResponse.status} - ${errorText}`);
         }
       } else {
         // Save as draft (fallback to localStorage)

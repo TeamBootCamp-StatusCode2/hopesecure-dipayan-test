@@ -10,6 +10,7 @@ import sendgrid
 from sendgrid.helpers.mail import Mail
 
 from .models import EmailAccount, EmailAlias, IncomingEmail, SentEmail
+from campaigns.domain_models import EmailDomain
 from .serializers import (
     EmailAccountSerializer, EmailAccountCreateSerializer,
     EmailAliasSerializer, IncomingEmailSerializer, SentEmailSerializer,
@@ -30,8 +31,18 @@ class EmailAccountViewSet(viewsets.ModelViewSet):
         return EmailAccountSerializer
     
     def get_queryset(self):
-        # Users can only see their own email accounts
-        return EmailAccount.objects.filter(created_by=self.request.user)
+        # Simplified - show all email accounts for any authenticated user
+        return EmailAccount.objects.all()
+    
+    def create(self, request, *args, **kwargs):
+        """Create a new email account and return with ID"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        account = serializer.save()
+        
+        # Return full account data including ID
+        response_serializer = EmailAccountSerializer(account)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['post'])
     def send_test_email(self, request, pk=None):
@@ -196,12 +207,10 @@ class EmailDomainQuickSetupView(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def available_domains(self, request):
-        """Get verified domains for email account creation"""
-        domains = EmailDomain.objects.filter(
-            status='verified'
-        ).values('id', 'name', 'status', 'emails_sent')
-        
-        return Response(list(domains))
+        """Get all verified domains - simplified access"""
+        domains = EmailDomain.objects.filter(status='verified')
+        domain_data = domains.values('id', 'name', 'status', 'emails_sent')
+        return Response(list(domain_data))
     
     @action(detail=False, methods=['post'])
     def quick_setup(self, request):

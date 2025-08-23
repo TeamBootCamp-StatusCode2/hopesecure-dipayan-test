@@ -31,11 +31,9 @@ class EmailAccountCreateSerializer(serializers.ModelSerializer):
         fields = ['username', 'domain_id', 'account_type', 'auto_reply_enabled', 'auto_reply_message']
     
     def validate(self, data):
-        # Check if domain exists and user owns it
+        # Check if domain exists - simplified validation
         try:
             domain = EmailDomain.objects.get(id=data['domain_id'])
-            if domain.created_by != self.context['request'].user:
-                raise serializers.ValidationError("You don't own this domain")
             data['domain'] = domain
         except EmailDomain.DoesNotExist:
             raise serializers.ValidationError("Domain not found")
