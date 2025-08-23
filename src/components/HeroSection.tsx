@@ -1,103 +1,93 @@
+import heroVideo from "@/assets/Animate_hopesecure.mp4";
 import { Button } from "@/components/ui/button";
-import { Shield, Zap, Target } from "lucide-react";
+import { ArrowRight, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import heroImage from "@/assets/hero-security.jpg";
 
 const HeroSection = () => {
   const navigate = useNavigate();
-  
+
   return (
-    <section className="relative min-h-screen bg-gradient-hero flex items-center overflow-hidden">
-      {/* Background Image */}
-      <div 
-        className="absolute inset-0 opacity-20"
-        style={{
-          backgroundImage: `url(${heroImage})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      />
-      
-      {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-24">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div className="text-white">
-            <div className="flex items-center gap-2 mb-6">
-              <Shield className="h-8 w-8 text-security-green" />
-              <span className="text-2xl font-bold">HopeSecure</span>
-              <span className="text-security-green text-2xl font-bold">Feeder</span>
-            </div>
+    <>
+      {/* Video Section with overlay text */}
+      <section className="relative min-h-screen bg-gradient-hero flex items-center overflow-hidden">
+        {/* Animated Video Background */}
+        <div className="absolute inset-0 w-full h-full">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+          >
+            <source src={heroVideo} type="video/mp4" />
+          </video>
+          {/* Light Blur Overlay - keeping the blur effect as requested */}
+          <div className="absolute inset-0 backdrop-blur-sm bg-black/30"></div>
+        </div>
+
+        {/* Hero Text Overlay - positioned in the empty space */}
+        <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 text-center text-white">
+          <div className="mt-20">
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
+              Advanced Cybersecurity Awareness Platform
+            </h2>
             
-            <h1 className="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-              Test. Measure.{" "}
-              <span className="text-security-green">Secure.</span>
-            </h1>
-            
-            <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-              Launch realistic cyber awareness simulations to measure your team's readiness against phishing and data breach attempts.
+            <p className="text-xl md:text-2xl text-gray-200 mb-6 max-w-4xl mx-auto">
+              Protect your organization with realistic phishing simulations and comprehensive employee training
             </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 mb-12">
+
+            <p className="text-lg md:text-xl text-green-300 font-semibold mb-8">
+              Transform your team into your strongest security defense
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Button 
-                variant="hero" 
                 size="lg" 
-                className="text-lg px-8 py-4"
-                onClick={() => navigate('/dashboard')}
+                className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg font-semibold"
+                onClick={() => navigate('/signin')}
               >
-                Start Your Campaign
+                Start Your Security Journey
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <Button variant="outline" size="lg" className="text-lg px-8 py-4 bg-transparent hover:bg-white/10">
-                Watch Demo
+              
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="border-2 border-white text-white hover:bg-white hover:text-gray-900 px-8 py-4 text-lg font-semibold"
+                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                Explore Features
               </Button>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-8 pt-8 border-t border-white/20">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-security-green mb-2">98%</div>
-                <div className="text-sm text-gray-300">Detection Rate</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-security-green mb-2">50K+</div>
-                <div className="text-sm text-gray-300">Tests Conducted</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-security-green mb-2">500+</div>
-                <div className="text-sm text-gray-300">Enterprise Clients</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="relative">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 shadow-glow">
-              <h3 className="text-white text-xl font-semibold mb-6">Why Choose HopeSecure Feeder?</h3>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Target className="h-6 w-6 text-security-green mt-1 flex-shrink-0" />
-                  <div>
-                    <h4 className="text-white font-medium">Realistic Simulations</h4>
-                    <p className="text-gray-300 text-sm">Domain imitation and authentic-looking campaigns</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Zap className="h-6 w-6 text-security-green mt-1 flex-shrink-0" />
-                  <div>
-                    <h4 className="text-white font-medium">Instant Setup</h4>
-                    <p className="text-gray-300 text-sm">Launch campaigns in minutes, not hours</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Shield className="h-6 w-6 text-security-green mt-1 flex-shrink-0" />
-                  <div>
-                    <h4 className="text-white font-medium">Detailed Analytics</h4>
-                    <p className="text-gray-300 text-sm">Comprehensive reporting and insights</p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      {/* Content Section Below Video */}
+      <section className="py-16 bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+              <div className="text-blue-600 text-3xl mb-4">📊</div>
+              <h3 className="font-bold text-xl mb-3 text-gray-900">Real-Time Monitoring</h3>
+              <p className="text-gray-600">Track campaign progress instantly with live analytics and detailed reporting</p>
+            </div>
+            
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+              <div className="text-green-600 text-3xl mb-4">🎨</div>
+              <h3 className="font-bold text-xl mb-3 text-gray-900">Custom Templates</h3>
+              <p className="text-gray-600">Create authentic phishing emails that mimic your company's branding and style</p>
+            </div>
+            
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+              <div className="text-purple-600 text-3xl mb-4">📈</div>
+              <h3 className="font-bold text-xl mb-3 text-gray-900">Detailed Analytics</h3>
+              <p className="text-gray-600">Comprehensive vulnerability reports with actionable security insights</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
   );
 };
 

@@ -13,6 +13,7 @@ import { useState, useEffect } from "react";
 import { getActiveTemplates, getUserCreatedTemplates, Template } from "@/data/templates";
 import { apiClient } from "@/lib/api";
 import EmailSelector from "@/components/EmailSelector";
+import SuccessDialog from "@/components/SuccessDialog";
 
 const CreateCampaign = () => {
   const navigate = useNavigate();
@@ -31,6 +32,10 @@ const CreateCampaign = () => {
     domain: string;
     accountId: number;
   } | null>(null);
+  
+  // Success dialog state
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [successResults, setSuccessResults] = useState<any>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -402,16 +407,9 @@ const CreateCampaign = () => {
           console.log('✅ Launch result:', launchResult);
           const results = launchResult.results;
           
-          alert(`🚀 Campaign launched successfully!\\n\\n` +
-                `📊 Results:\\n` +
-                `• Total emails: ${results.total_targets}\\n` +
-                `• Successful sends: ${results.successful_sends}\\n` +
-                `• Failed sends: ${results.failed_sends}\\n` +
-                `• Success rate: ${results.success_rate}%\\n\\n` +
-                `📧 Sender: ${results.sender_email}\\n` +
-                `${results.domain_info ? `🌐 Domain: ${results.domain_info.name}` : ''}`);
-          
-          navigate('/dashboard');
+          // Show modern success dialog
+          setSuccessResults(results);
+          setShowSuccessDialog(true);
         } else {
           const errorText = await launchResponse.text();
           console.error('❌ Launch failed response:', errorText);
@@ -426,7 +424,7 @@ const CreateCampaign = () => {
         };
         existingCampaigns.push(newCampaign);
         localStorage.setItem('hopesecure_campaigns', JSON.stringify(existingCampaigns));
-        alert(`📝 Campaign saved as draft!\\nSender Email: ${senderEmail}`);
+        alert(`✅ Campaign saved as draft successfully!`);
         navigate('/dashboard');
       }
       
@@ -1015,6 +1013,16 @@ const CreateCampaign = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Success Dialog */}
+      <SuccessDialog 
+        open={showSuccessDialog}
+        onClose={() => {
+          setShowSuccessDialog(false);
+          navigate('/dashboard');
+        }}
+        results={successResults}
+      />
     </div>
   );
 };

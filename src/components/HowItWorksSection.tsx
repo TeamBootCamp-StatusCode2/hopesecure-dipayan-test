@@ -74,22 +74,6 @@ const HowItWorksSection = () => {
             </div>
           ))}
         </div>
-        
-        {/* CTA Section */}
-        <div className="text-center bg-gradient-hero rounded-2xl p-12 text-white">
-          <h3 className="text-3xl font-bold mb-4">Ready to Test Your Team's Security Awareness?</h3>
-          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            Start with a free trial campaign and see how your organization measures up against modern cyber threats.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="accent" size="lg" className="text-lg px-8 py-4">
-              Start Free Trial
-            </Button>
-            <Button variant="outline" size="lg" className="text-lg px-8 py-4 bg-transparent hover:bg-white/10">
-              Schedule Demo
-            </Button>
-          </div>
-        </div>
       </div>
     </section>
   );

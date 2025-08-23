@@ -194,7 +194,7 @@ const MultiDomainCampaign = () => {
       const data = await response.json();
       
       if (data.success) {
-        alert(`Campaign sent successfully! Sent: ${data.results.sent}, Failed: ${data.results.failed}`);
+        alert(`✅ Campaign sent successfully! Sent: ${data.results.sent}, Failed: ${data.results.failed}`);
         navigate('/dashboard');
       } else {
         alert(`Campaign failed: ${data.error}`);

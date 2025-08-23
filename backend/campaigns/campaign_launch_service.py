@@ -67,19 +67,45 @@ def launch_campaign(request):
         
         # Get template content if template_id is provided
         template_id = data.get('template_id')
-        email_subject = f"Security Awareness Test - {campaign_name}"
+        email_subject = f"Security Update - {campaign_name}"
         email_html = f"""
-        <html>
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Security Notice</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; }}
+                .header {{ background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }}
+                .content {{ background: white; padding: 25px; border: 1px solid #e0e0e0; border-radius: 8px; }}
+                .notice {{ background: #e3f2fd; padding: 15px; border-left: 4px solid #2196f3; margin: 20px 0; }}
+                .footer {{ text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }}
+                .btn {{ display: inline-block; padding: 12px 24px; background: #1976d2; color: white; text-decoration: none; border-radius: 6px; margin: 15px 0; }}
+            </style>
+        </head>
         <body>
-            <h2>Security Awareness Test</h2>
-            <p>This is a simulated phishing email for security awareness training.</p>
-            <p><strong>Campaign:</strong> {campaign_name}</p>
-            <p><strong>From:</strong> {sender_email}</p>
-            <br>
-            <div style="background: #f0f0f0; padding: 15px; border-radius: 5px;">
-                <p><strong>⚠️ This is a simulation!</strong></p>
-                <p>If this were a real phishing attack, you would have been compromised.</p>
-                <p>Learn more about cybersecurity awareness.</p>
+            <div class="header">
+                <h2 style="margin: 0; color: #1976d2;">IT Security Department</h2>
+                <p style="margin: 5px 0 0 0; color: #666;">Security Awareness Training</p>
+            </div>
+            <div class="content">
+                <h3>Security Training Exercise</h3>
+                <p>Dear Team Member,</p>
+                <p>This message is part of our ongoing cybersecurity awareness training program.</p>
+                <p><strong>Training Campaign:</strong> {campaign_name}</p>
+                <div class="notice">
+                    <p><strong>📚 Educational Purpose</strong></p>
+                    <p>This is a simulated security scenario designed to help you identify potential threats.</p>
+                    <p>Your participation helps strengthen our organization's security posture.</p>
+                </div>
+                <p>For more information about cybersecurity best practices, please visit our internal security portal.</p>
+            </div>
+            <div class="footer">
+                <p><strong>Security Awareness Training Program</strong></p>
+                <p>This email is part of your organization's cybersecurity education initiative.</p>
+                <p>Questions? Contact your IT security team at security@company.com</p>
+                <p>© 2025 IT Security Department</p>
             </div>
         </body>
         </html>
@@ -141,42 +167,58 @@ def launch_campaign(request):
                         domain_id=domain_id
                     )
                 else:
-                    # Use SendGrid directly for regular campaigns
+                    # Use SendGrid directly for regular campaigns (Fallback)
                     import os
-                    from sendgrid import SendGridAPIClient
-                    from sendgrid.helpers.mail import Mail
                     from django.conf import settings
                     
-                    # Get API key from Django settings instead of environment
-                    api_key = settings.PHISHING_EMAIL_SETTINGS.get('SENDGRID_API_KEY')
-                    sg = SendGridAPIClient(api_key=api_key)
-                    
-                    # Use verified sender email from hopesecure.tech domain
-                    verified_sender_email = "hope@hopesecure.tech"  # This is verified in SendGrid
-                    
-                    message = Mail(
-                        from_email=verified_sender_email,  # Use verified email
-                        to_emails=target_email,
-                        subject=email_subject,
-                        html_content=email_html
-                    )
-                    
                     try:
-                        response = sg.send(message)
-                        result = {
-                            'success': True,
-                            'status_code': response.status_code,
-                            'message': 'Email sent successfully via SendGrid',
-                            'sender_email': verified_sender_email,  # Update to show actual sender
-                            'recipient': target_email
-                        }
-                    except Exception as sg_error:
-                        result = {
-                            'success': False,
-                            'message': f'SendGrid error: {str(sg_error)}',
-                            'sender_email': verified_sender_email,  # Update to show actual sender
-                            'recipient': target_email
-                        }
+                        # Try to use anti-spam service first
+                        from .anti_spam_service import AntiSpamEmailService
+                        email_service = AntiSpamEmailService()
+                        result = email_service.send_campaign_email(
+                            recipient_email=target_email,
+                            subject=email_subject,
+                            html_content=email_html,
+                            sender_name="IT Security Team",
+                            campaign_id=campaign_name
+                        )
+                    except Exception as fallback_error:
+                        print(f"Anti-spam service failed, using fallback: {fallback_error}")
+                        
+                        # Fallback to basic SendGrid
+                        try:
+                            from sendgrid import SendGridAPIClient
+                            from sendgrid.helpers.mail import Mail
+                            
+                            # Get API key from Django settings
+                            api_key = settings.PHISHING_EMAIL_SETTINGS.get('SENDGRID_API_KEY')
+                            sg = SendGridAPIClient(api_key=api_key)
+                            
+                            # Use verified sender email
+                            verified_sender_email = "hope@hopesecure.tech"
+                            
+                            message = Mail(
+                                from_email=verified_sender_email,
+                                to_emails=target_email,
+                                subject=email_subject,
+                                html_content=email_html
+                            )
+                            
+                            response = sg.send(message)
+                            result = {
+                                'success': True,
+                                'status_code': response.status_code,
+                                'message': 'Email sent successfully via SendGrid (fallback)',
+                                'sender_email': verified_sender_email,
+                                'recipient': target_email
+                            }
+                        except Exception as sg_error:
+                            result = {
+                                'success': False,
+                                'message': f'SendGrid fallback error: {str(sg_error)}',
+                                'sender_email': 'hope@hopesecure.tech',
+                                'recipient': target_email
+                            }
                 
                 if result['success']:
                     campaign_results['successful_sends'] += 1

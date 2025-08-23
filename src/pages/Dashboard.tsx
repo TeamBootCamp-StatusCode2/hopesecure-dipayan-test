@@ -421,7 +421,7 @@ const Dashboard = () => {
                             const updatedCampaigns = storedCampaigns.map(c => c.id === campaign.id ? updatedCampaign : c);
                             localStorage.setItem('hopesecure_campaigns', JSON.stringify(updatedCampaigns));
                             setDraftCampaigns(prev => prev.filter(c => c.id !== campaign.id));
-                            alert('Draft campaign launched successfully!');
+                            alert('✅ Campaign launched successfully!');
                           }}
                         >
                           <Target className="h-4 w-4 mr-1" />
@@ -437,7 +437,7 @@ const Dashboard = () => {
                               const updatedCampaigns = storedCampaigns.filter(c => c.id !== campaign.id);
                               localStorage.setItem('hopesecure_campaigns', JSON.stringify(updatedCampaigns));
                               setDraftCampaigns(prev => prev.filter(c => c.id !== campaign.id));
-                              alert('Draft campaign deleted successfully!');
+                              alert('✅ Campaign deleted successfully!');
                             }
                           }}
                           className="text-red-600 hover:text-red-700 hover:border-red-300"
@@ -560,7 +560,7 @@ const Dashboard = () => {
                               const updatedCampaigns = storedCampaigns.map(c => c.id === campaign.id ? updatedCampaign : c);
                               localStorage.setItem('hopesecure_campaigns', JSON.stringify(updatedCampaigns));
                               setPublishedCampaigns(prev => prev.map(c => c.id === campaign.id ? updatedCampaign : c));
-                              alert('Campaign started successfully!');
+                              alert('✅ Campaign started successfully!');
                             }}
                           >
                             <Target className="h-4 w-4 mr-1" />
@@ -580,7 +580,7 @@ const Dashboard = () => {
                                   const updatedCampaigns = storedCampaigns.map(c => c.id === campaign.id ? updatedCampaign : c);
                                   localStorage.setItem('hopesecure_campaigns', JSON.stringify(updatedCampaigns));
                                   setPublishedCampaigns(prev => prev.map(c => c.id === campaign.id ? updatedCampaign : c));
-                                  alert('Campaign stopped successfully!');
+                                  alert('✅ Campaign stopped successfully!');
                                 }
                               }}
                               className="text-orange-600 hover:text-orange-700 hover:border-orange-300"
@@ -604,7 +604,7 @@ const Dashboard = () => {
                                   const updatedCampaigns = storedCampaigns.map(c => c.id === campaign.id ? updatedCampaign : c);
                                   localStorage.setItem('hopesecure_campaigns', JSON.stringify(updatedCampaigns));
                                   setPublishedCampaigns(prev => prev.map(c => c.id === campaign.id ? updatedCampaign : c));
-                                  alert('Campaign restarted successfully!');
+                                  alert('✅ Campaign restarted successfully!');
                                 }
                               }}
                               className="text-blue-600 hover:text-blue-700 hover:border-blue-300"
@@ -631,7 +631,7 @@ const Dashboard = () => {
                                 const updatedCampaigns = storedCampaigns.map(c => c.id === campaign.id ? updatedCampaign : c);
                                 localStorage.setItem('hopesecure_campaigns', JSON.stringify(updatedCampaigns));
                                 setPublishedCampaigns(prev => prev.map(c => c.id === campaign.id ? updatedCampaign : c));
-                                alert('Campaign restarted successfully!');
+                                alert('✅ Campaign restarted successfully!');
                               }
                             }}
                             className="text-blue-600 hover:text-blue-700 hover:border-blue-300"
@@ -650,7 +650,7 @@ const Dashboard = () => {
                               const updatedCampaigns = storedCampaigns.filter(c => c.id !== campaign.id);
                               localStorage.setItem('hopesecure_campaigns', JSON.stringify(updatedCampaigns));
                               setPublishedCampaigns(prev => prev.filter(c => c.id !== campaign.id));
-                              alert('Campaign deleted successfully!');
+                              alert('✅ Campaign deleted successfully!');
                             }
                           }}
                           className="text-red-600 hover:text-red-700 hover:border-red-300"
