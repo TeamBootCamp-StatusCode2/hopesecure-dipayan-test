@@ -1,13 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Shield, Zap, Target, RefreshCw, Play } from "lucide-react";
+import { Shield, Zap, Target, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useGlobalStats } from "@/hooks/useGlobalStats";
 import heroImage from "@/assets/hero-security.jpg";
 import heroVideo from "@/assets/Animate_hs_word_202508231645.mp4";
 
 const HeroSection = () => {
   const navigate = useNavigate();
-  const { stats, loading, error } = useGlobalStats();
   
   const scrollToVideo = () => {
     const videoElement = document.querySelector('#hero-video');
@@ -80,52 +78,6 @@ const HeroSection = () => {
                 <Play className="h-5 w-5 mr-2" />
                 Watch Demo
               </Button>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-8 pt-8 border-t border-white/20">
-              <div className="text-center group">
-                <div className="text-3xl font-bold text-security-green mb-2 flex items-center justify-center gap-2 transition-all duration-300 group-hover:scale-105">
-                  {loading ? (
-                    <RefreshCw className="h-6 w-6 animate-spin" />
-                  ) : (
-                    <span className="tabular-nums">{stats?.detectionRate || "98%"}</span>
-                  )}
-                </div>
-                <div className="text-sm text-gray-200">Detection Rate</div>
-              </div>
-              <div className="text-center group">
-                <div className="text-3xl font-bold text-security-green mb-2 flex items-center justify-center gap-2 transition-all duration-300 group-hover:scale-105">
-                  {loading ? (
-                    <RefreshCw className="h-6 w-6 animate-spin" />
-                  ) : (
-                    <span className="tabular-nums">{stats?.testsCount || "50K+"}</span>
-                  )}
-                </div>
-                <div className="text-sm text-gray-200">Tests Conducted</div>
-              </div>
-              <div className="text-center group">
-                <div className="text-3xl font-bold text-security-green mb-2 flex items-center justify-center gap-2 transition-all duration-300 group-hover:scale-105">
-                  {loading ? (
-                    <RefreshCw className="h-6 w-6 animate-spin" />
-                  ) : (
-                    <span className="tabular-nums">{stats?.clientsCount || "500+"}</span>
-                  )}
-                </div>
-                <div className="text-sm text-gray-200">Enterprise Clients</div>
-              </div>
-            </div>
-            
-            {/* Live data indicator */}
-            <div className="flex items-center justify-center gap-2 mt-4 text-sm text-gray-300">
-              <div className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-                loading ? 'bg-yellow-400 animate-pulse' : 'bg-green-400 animate-ping'
-              }`}></div>
-              <span className="transition-opacity duration-300">
-                {loading ? 'Updating live data...' : 'Real-time data • Updates every 30s'}
-              </span>
-              {error && (
-                <span className="text-red-400 ml-2 animate-pulse">({error})</span>
-              )}
             </div>
           </div>
           
