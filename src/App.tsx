@@ -18,6 +18,8 @@ import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import AdminMonitoringDashboard from "./components/AdminMonitoringDashboard";
 import MultiDomainCampaign from "./pages/MultiDomainCampaign";
 import EmailDashboard from "./pages/EmailDashboard";  // New email management
+import UserEmailManagement from "./pages/UserEmailManagement";  // User Email Management
+import UserDomainDNS from "./pages/UserDomainDNS";  // User Domain DNS
 import NotFound from "./pages/NotFound";
 import Signin from "./pages/signin"; 
 import Signup from "./pages/signup";
@@ -81,6 +83,16 @@ const App = () => (
             <Route path="/email" element={
               <ProtectedRoute>
                 <EmailDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/email-management" element={
+              <ProtectedRoute>
+                <UserEmailManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/domain-dns" element={
+              <ProtectedRoute>
+                <UserDomainDNS />
               </ProtectedRoute>
             } />
             

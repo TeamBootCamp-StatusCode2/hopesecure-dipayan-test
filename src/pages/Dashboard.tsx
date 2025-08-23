@@ -23,7 +23,9 @@ import {
   Home,
   RotateCcw,
   Square,
-  Crown
+  Crown,
+  Globe,
+  Server
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCampaigns } from "@/hooks/useCampaigns";
@@ -699,6 +701,22 @@ const Dashboard = () => {
               <Settings className="h-12 w-12 text-gray-600 mx-auto mb-4" />
               <CardTitle>Settings</CardTitle>
               <CardDescription>Configure platform settings</CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="border border-border hover:shadow-card transition-smooth cursor-pointer" onClick={() => navigate('/email-management')}>
+            <CardHeader className="text-center">
+              <Server className="h-12 w-12 text-indigo-600 mx-auto mb-4" />
+              <CardTitle>Email Management</CardTitle>
+              <CardDescription>Configure email accounts and sender addresses</CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="border border-border hover:shadow-card transition-smooth cursor-pointer" onClick={() => navigate('/domain-dns')}>
+            <CardHeader className="text-center">
+              <Globe className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+              <CardTitle>Domain DNS</CardTitle>
+              <CardDescription>Manage email domains and DNS settings</CardDescription>
             </CardHeader>
           </Card>
         </div>

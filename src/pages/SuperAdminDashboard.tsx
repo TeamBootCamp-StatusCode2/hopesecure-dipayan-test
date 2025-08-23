@@ -14,9 +14,11 @@ import {
   Monitor,
   Globe,
   Server,
-  Mail
+  Mail,
+  Home
 } from "lucide-react";
 import { apiClient } from '@/lib/api';
+import { useNavigate } from 'react-router-dom';
 import LogoutButton from '@/components/LogoutButton';
 import AdminMonitoringDashboard from '@/components/AdminMonitoringDashboard';
 import SuperAdminDomainManager from '@/components/SuperAdminDomainManager';
@@ -50,6 +52,7 @@ interface Organization {
 }
 
 const SuperAdminDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,6 +103,14 @@ const SuperAdminDashboard: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <Button
+                onClick={() => navigate('/dashboard')}
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
+              >
+                <Home className="h-4 w-4 mr-2" />
+                Switch to User Dashboard
+              </Button>
               <span className="text-gray-300 text-sm">System Administrator</span>
               <LogoutButton className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors" />
             </div>
