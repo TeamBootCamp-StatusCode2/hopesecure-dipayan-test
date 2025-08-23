@@ -10,6 +10,7 @@ urlpatterns = [
     path('', views.CampaignListCreateView.as_view(), name='campaign-list-create'),
     path('<int:pk>/', views.CampaignDetailView.as_view(), name='campaign-detail'),
     path('stats/', views.campaign_stats, name='campaign-stats'),
+    path('global-stats/', views.global_platform_stats, name='global-platform-stats'),
     
     # Campaign Launch APIs
     path('launch/', campaign_launch_service.launch_campaign, name='launch-campaign'),
