@@ -13,12 +13,14 @@ import {
   Database,
   Monitor,
   Globe,
-  Server
+  Server,
+  Mail
 } from "lucide-react";
 import { apiClient } from '@/lib/api';
 import LogoutButton from '@/components/LogoutButton';
 import AdminMonitoringDashboard from '@/components/AdminMonitoringDashboard';
 import SuperAdminDomainManager from '@/components/SuperAdminDomainManager';
+import EmailDashboard from '@/pages/EmailDashboard';
 
 interface SystemStats {
   total_organizations: number;
@@ -29,6 +31,8 @@ interface SystemStats {
   super_admins: number;
   org_admins: number;
   active_organizations: number;
+  total_email_accounts?: number;
+  total_domains?: number;
 }
 
 interface Organization {
@@ -49,7 +53,7 @@ const SuperAdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'organizations' | 'users' | 'domains' | 'system' | 'monitoring'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'organizations' | 'users' | 'emails' | 'domains' | 'system' | 'monitoring'>('overview');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -110,6 +114,7 @@ const SuperAdminDashboard: React.FC = () => {
             { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'organizations', label: 'Organizations', icon: Building2 },
             { id: 'users', label: 'Users', icon: Users },
+            { id: 'emails', label: 'Email Management', icon: Mail },
             { id: 'domains', label: 'Domain DNS', icon: Globe },
             { id: 'monitoring', label: 'Monitoring', icon: Monitor },
             { id: 'system', label: 'System', icon: Settings }
@@ -133,7 +138,7 @@ const SuperAdminDashboard: React.FC = () => {
         {activeTab === 'overview' && stats && (
           <div className="space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               <Card className="bg-black/20 border-white/10 text-white">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-300">Total Organizations</CardTitle>
@@ -171,6 +176,16 @@ const SuperAdminDashboard: React.FC = () => {
                 <CardContent>
                   <div className="text-2xl font-bold">{stats.total_templates}</div>
                   <p className="text-xs text-gray-400">available</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-black/20 border-white/10 text-white">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-300">Email Accounts</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.total_email_accounts || 0}</div>
+                  <p className="text-xs text-gray-400">configured</p>
                 </CardContent>
               </Card>
             </div>
@@ -310,6 +325,15 @@ const SuperAdminDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* Email Management Tab */}
+        {activeTab === 'emails' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-lg">
+              <EmailDashboard />
+            </div>
+          </div>
+        )}
+
         {/* Domain DNS Tab */}
         {activeTab === 'domains' && (
           <div className="space-y-6">
@@ -336,6 +360,15 @@ const SuperAdminDashboard: React.FC = () => {
                     <Globe className="h-6 w-6 mb-2" />
                     <h3 className="font-semibold">Domain DNS Config</h3>
                     <p className="text-sm text-gray-400 text-left">Manage email domains and DNS settings</p>
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => setActiveTab('emails')}
+                    className="p-6 h-auto flex-col items-start bg-indigo-600/20 border-indigo-500/30 hover:bg-indigo-600/30"
+                  >
+                    <Mail className="h-6 w-6 mb-2" />
+                    <h3 className="font-semibold">Email Management</h3>
+                    <p className="text-sm text-gray-400 text-left">Configure email accounts and sender addresses</p>
                   </Button>
                   
                   <Button className="p-6 h-auto flex-col items-start bg-green-600/20 border-green-500/30 hover:bg-green-600/30">

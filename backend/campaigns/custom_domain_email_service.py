@@ -14,7 +14,8 @@ class CustomDomainEmailService:
     """
     
     def __init__(self):
-        self.sg = SendGridAPIClient(api_key=os.environ.get('SENDGRID_API_KEY'))
+        api_key = settings.PHISHING_EMAIL_SETTINGS.get('SENDGRID_API_KEY')
+        self.sg = SendGridAPIClient(api_key=api_key)
     
     def send_phishing_email(self, sender_email, recipient_email, subject, html_content, domain_id=None):
         """

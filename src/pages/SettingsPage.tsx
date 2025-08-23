@@ -205,8 +205,9 @@ const SettingsPage = () => {
         </div>
 
         <Tabs defaultValue="organization" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="organization">Company Details</TabsTrigger>
+            <TabsTrigger value="email">Email Setup</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
 
@@ -419,6 +420,11 @@ const SettingsPage = () => {
                   </div>
                 </CardContent>
               </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="email">
+            <div className="space-y-6">
             </div>
           </TabsContent>
 

@@ -50,3 +50,5 @@ backend/test_frontend_registration.py
 backend/test_login_profile.py
 #
 package-lock.json
+backend_env/
+backend/env/

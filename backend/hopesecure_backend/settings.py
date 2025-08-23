@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'employees',
     'reports',
     'organization',
+    'email_accounts',  # New email management app
 ]
 
 MIDDLEWARE = [

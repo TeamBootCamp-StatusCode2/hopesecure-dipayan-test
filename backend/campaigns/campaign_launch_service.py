@@ -18,6 +18,12 @@ def launch_campaign(request):
     try:
         data = json.loads(request.body)
         
+        # Debug logging
+        print(f"🔍 Campaign Launch Debug:")
+        print(f"   Received data: {data}")
+        print(f"   Sender email: {data.get('sender_email')}")
+        print(f"   Target emails: {data.get('target_emails')}")
+        
         # Extract campaign data
         campaign_name = data.get('name')
         target_emails = data.get('target_emails', [])
@@ -59,7 +65,8 @@ def launch_campaign(request):
                     'error': f'Domain with ID {domain_id} not found'
                 }, status=404)
         
-        # Email content (simplified for now)
+        # Get template content if template_id is provided
+        template_id = data.get('template_id')
         email_subject = f"Security Awareness Test - {campaign_name}"
         email_html = f"""
         <html>
@@ -77,6 +84,44 @@ def launch_campaign(request):
         </body>
         </html>
         """
+        
+        # If template_id is provided, use template content
+        if template_id:
+            try:
+                from templates.models import Template
+                template = Template.objects.get(id=template_id)
+                email_subject = template.email_subject or email_subject
+                
+                # Use template's HTML content if available
+                if template.html_content:
+                    email_html = template.html_content
+                    
+                    # Add CSS styles if available
+                    if template.css_styles:
+                        email_html = f"""
+                        <html>
+                        <head>
+                            <style>
+                                {template.css_styles}
+                            </style>
+                        </head>
+                        <body>
+                            {template.html_content}
+                        </body>
+                        </html>
+                        """
+                
+                # Update template usage count
+                template.usage_count += 1
+                template.save()
+                
+            except Template.DoesNotExist:
+                # If template not found, use default content but don't fail
+                pass
+            except Exception as e:
+                # Log error but continue with default template
+                print(f"Error loading template {template_id}: {e}")
+        
         
         # Initialize email service
         if use_custom_domain:
@@ -100,10 +145,17 @@ def launch_campaign(request):
                     import os
                     from sendgrid import SendGridAPIClient
                     from sendgrid.helpers.mail import Mail
+                    from django.conf import settings
                     
-                    sg = SendGridAPIClient(api_key=os.environ.get('SENDGRID_API_KEY'))
+                    # Get API key from Django settings instead of environment
+                    api_key = settings.PHISHING_EMAIL_SETTINGS.get('SENDGRID_API_KEY')
+                    sg = SendGridAPIClient(api_key=api_key)
+                    
+                    # Use verified sender email from hopesecure.tech domain
+                    verified_sender_email = "hope@hopesecure.tech"  # This is verified in SendGrid
+                    
                     message = Mail(
-                        from_email=sender_email,
+                        from_email=verified_sender_email,  # Use verified email
                         to_emails=target_email,
                         subject=email_subject,
                         html_content=email_html
@@ -115,14 +167,14 @@ def launch_campaign(request):
                             'success': True,
                             'status_code': response.status_code,
                             'message': 'Email sent successfully via SendGrid',
-                            'sender_email': sender_email,
+                            'sender_email': verified_sender_email,  # Update to show actual sender
                             'recipient': target_email
                         }
                     except Exception as sg_error:
                         result = {
                             'success': False,
                             'message': f'SendGrid error: {str(sg_error)}',
-                            'sender_email': sender_email,
+                            'sender_email': verified_sender_email,  # Update to show actual sender
                             'recipient': target_email
                         }
                 

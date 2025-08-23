@@ -27,6 +27,7 @@ urlpatterns = [
     path('api/employees/', include('employees.urls')),
     path('api/reports/', include('reports.urls')),
     path('api/organization/', include('organization.urls')),
+    path('api/email/', include('email_accounts.urls')),  # New email management API
 ]
 
 # Serve media files during development

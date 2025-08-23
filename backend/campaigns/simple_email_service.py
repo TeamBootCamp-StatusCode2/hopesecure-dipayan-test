@@ -110,7 +110,7 @@ def test_sendgrid_connection():
             </body>
             </html>
             ''',
-            sender_email='bolbonakano@gmail.com'
+            sender_email='hope@hopesecure.tech'  # Use verified sender
         )
         
         return result, "Email sent successfully" if result else "Email sending failed"

@@ -17,6 +17,7 @@ import SettingsPage from "./pages/SettingsPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import AdminMonitoringDashboard from "./components/AdminMonitoringDashboard";
 import MultiDomainCampaign from "./pages/MultiDomainCampaign";
+import EmailDashboard from "./pages/EmailDashboard";  // New email management
 import NotFound from "./pages/NotFound";
 import Signin from "./pages/signin"; 
 import Signup from "./pages/signup";
@@ -29,7 +30,12 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true
+        }}
+      >
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
@@ -70,6 +76,11 @@ const App = () => (
             <Route path="/settings" element={
               <ProtectedRoute>
                 <SettingsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/email" element={
+              <ProtectedRoute>
+                <EmailDashboard />
               </ProtectedRoute>
             } />
             

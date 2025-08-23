@@ -3,6 +3,7 @@ from . import views
 from . import campaign_domain_api
 from . import simple_domain_test
 from . import campaign_launch_service
+from . import sendgrid_views
 
 urlpatterns = [
     # Campaign URLs
@@ -31,6 +32,13 @@ urlpatterns = [
     path('test-spoofing/', views.test_email_spoofing, name='test-email-spoofing'),
     path('verify-setup/', views.verify_email_setup, name='verify-email-setup'),
     path('send-test-email/', views.send_test_email, name='send-test-email'),
+    
+    # SendGrid Verification APIs
+    path('sendgrid/senders/', sendgrid_views.get_verified_senders, name='sendgrid-verified-senders'),
+    path('sendgrid/senders/create/', sendgrid_views.create_verified_sender, name='sendgrid-create-sender'),
+    path('sendgrid/senders/resend/', sendgrid_views.resend_verification, name='sendgrid-resend-verification'),
+    path('sendgrid/senders/<int:sender_id>/delete/', sendgrid_views.delete_verified_sender, name='sendgrid-delete-sender'),
+    path('sendgrid/status/', sendgrid_views.check_verification_status, name='sendgrid-verification-status'),
     
     # Domain management endpoints - Simple API
     path('domains/', include('campaigns.simple_domain_urls')),

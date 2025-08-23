@@ -12,6 +12,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { getActiveTemplates, getUserCreatedTemplates, Template } from "@/data/templates";
 import { apiClient } from "@/lib/api";
+import EmailSelector from "@/components/EmailSelector";
 
 const CreateCampaign = () => {
   const navigate = useNavigate();
@@ -25,6 +26,11 @@ const CreateCampaign = () => {
   const [employees, setEmployees] = useState<any[]>([]);
   const [showEmployeeDialog, setShowEmployeeDialog] = useState(false);
   const [selectedEmployees, setSelectedEmployees] = useState<any[]>([]);
+  const [selectedEmailAccount, setSelectedEmailAccount] = useState<{
+    email: string;
+    domain: string;
+    accountId: number;
+  } | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -309,6 +315,11 @@ const CreateCampaign = () => {
       return;
     }
 
+    if (!selectedEmailAccount) {
+      alert('Please select an email account to send from');
+      return;
+    }
+
     // Additional validation for multi-domain campaigns
     if (formData.useMultipleDomains && !formData.selectedDomain) {
       alert('Please select a domain for custom domain campaigns');
@@ -318,14 +329,8 @@ const CreateCampaign = () => {
     setIsSubmitting(true);
     
     try {
-      // Generate custom email address if using custom domain
-      let senderEmail = 'noreply@example.com';
-      if (formData.useMultipleDomains && formData.selectedDomain) {
-        const selectedDomainData = availableDomains.find(d => d.id.toString() === formData.selectedDomain);
-        if (selectedDomainData) {
-          senderEmail = `${formData.customEmailPrefix}@${selectedDomainData.name}`;
-        }
-      }
+      // Use selected email account or default verified email
+      let senderEmail = selectedEmailAccount?.email || 'hope@hopesecure.tech';
 
       // Prepare campaign data for launch
       const campaignData = {
@@ -338,11 +343,11 @@ const CreateCampaign = () => {
         status: isDraft ? 'draft' : 'scheduled',
         created_at: new Date().toISOString(),
         // Custom domain specific fields
-        use_custom_domain: formData.useMultipleDomains,
-        domain_id: formData.useMultipleDomains ? parseInt(formData.selectedDomain) : null,
+        use_custom_domain: false, // Force disable custom domain for now
+        domain_id: null, // Force null domain
         sender_email: senderEmail,
         custom_email_prefix: formData.customEmailPrefix,
-        is_multi_domain: formData.useMultipleDomains
+        is_multi_domain: false // Force disable multi-domain
       };
 
       console.log('Launching campaign with data:', campaignData);
@@ -514,101 +519,35 @@ const CreateCampaign = () => {
                   />
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Multi-Domain Advanced Options */}
-              <div className="space-y-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="use-multiple-domains"
-                    className="rounded"
-                    checked={formData.useMultipleDomains}
-                    onChange={(e) => handleInputChange('useMultipleDomains', e.target.checked)}
-                  />
-                  <Label htmlFor="use-multiple-domains" className="text-sm font-medium text-blue-700">
-                    🌐 Use Custom Domain Extensions (Advanced)
-                  </Label>
+          {/* Email Account Selection */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5 text-security-blue" />
+                Email Account Configuration
+              </CardTitle>
+              <CardDescription>Select which email account to use for sending this campaign</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <EmailSelector 
+                onEmailSelect={setSelectedEmailAccount}
+                selectedEmail={selectedEmailAccount}
+              />
+              
+              {selectedEmailAccount && (
+                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
+                  <p className="text-sm font-medium text-green-700">✅ Selected Sender:</p>
+                  <p className="text-sm text-green-600 font-mono">
+                    {selectedEmailAccount.email}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    This email account will be used to send all campaign emails
+                  </p>
                 </div>
-                
-                {formData.useMultipleDomains && (
-                  <div className="space-y-3 ml-6">
-                    <div>
-                      <Label className="text-sm text-blue-600">Select Domain</Label>
-                      <Select value={formData.selectedDomain} onValueChange={(value) => handleInputChange('selectedDomain', value)}>
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Choose a domain from your configured domains" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableDomains.length > 0 ? (
-                            availableDomains.map((domain) => (
-                              <SelectItem key={domain.id} value={domain.id.toString()}>
-                                <div>
-                                  <div className="font-medium">{domain.name}</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {domain.domain_type} • Success: {domain.success_rate}%
-                                  </div>
-                                </div>
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="no-domains" disabled>
-                              <div className="text-muted-foreground">
-                                <div>No domains available.</div>
-                                <div className="text-xs">Add domains in Super Admin panel first.</div>
-                              </div>
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    {formData.selectedDomain && (
-                      <div>
-                        <Label className="text-sm text-blue-600">Custom Email Prefix</Label>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <input
-                            type="text"
-                            value={formData.customEmailPrefix}
-                            onChange={(e) => handleInputChange('customEmailPrefix', e.target.value)}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            placeholder="noreply"
-                          />
-                          <span className="text-sm text-muted-foreground">@</span>
-                          <span className="text-sm font-medium text-blue-600">
-                            {availableDomains.find(d => d.id.toString() === formData.selectedDomain)?.name || 'domain.com'}
-                          </span>
-                        </div>
-                        <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded">
-                          <p className="text-sm font-medium text-green-700">✅ Email Preview:</p>
-                          <p className="text-sm text-green-600 font-mono">
-                            {formData.customEmailPrefix}@{availableDomains.find(d => d.id.toString() === formData.selectedDomain)?.name || 'domain.com'}
-                          </p>
-                          <p className="text-xs text-green-600 mt-1">
-                            This email address will be used as sender for all campaign emails
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="bg-blue-100 p-3 rounded text-sm text-blue-700">
-                      <strong>🚀 Custom Domain Features:</strong>
-                      <ul className="mt-1 space-y-1">
-                        <li>• Use your own verified domains</li>
-                        <li>• Create custom sender email addresses</li>
-                        <li>• Advanced domain reputation management</li>
-                        <li>• Real-time delivery tracking</li>
-                      </ul>
-                      {availableDomains.length === 0 && (
-                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                          <p className="text-yellow-700 text-xs">
-                            <strong>📝 Note:</strong> No domains found. Please add domains in the Super Admin panel first to use this feature.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+              )}
             </CardContent>
           </Card>
 

@@ -178,10 +178,10 @@ const Dashboard = () => {
               <p className="text-gray-300">Monitor and manage your cybersecurity awareness campaigns</p>
             </div>
             <div className="flex gap-3">
-              <Button 
+                            <Button 
                 variant="outline" 
                 size="lg" 
-                className="w-fit bg-white/10 text-white border-white/20 hover:bg-white/20"
+                className="w-fit bg-gray-500/20 text-gray-100 border-gray-400/30 hover:bg-gray-500/30"
                 onClick={() => navigate('/')}
               >
                 <Home className="h-5 w-5 mr-2" />
